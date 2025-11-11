@@ -1,4 +1,6 @@
-# Головний імпорт модулів
+#
+#
+#
 from assistant.models import AddressBook, NoteBook
 from assistant.storage import load_data, save_data
 from assistant import handlers
@@ -19,29 +21,20 @@ def parse_input(user_input: str) -> tuple:
 
 def main():
     """
-    Головна функція бота.
+    Головна функція бота
     """
-    # Перевірка підключення додаткових пакетів
-    # colorama
-    styles.are_colors_enabled()
-
-    # Завантажуємо дані при старті
     book, notes = load_data()
     print(f"{styles.INFO}Вітаю у персональному помічнику!")
 
-    # Словник-диспетчер команд
-    # Ключ - команда, значення - відповідна функція-обробник
+    if "are_colors_enabled" in dir(styles):
+        styles.are_colors_enabled()
+
     COMMANDS = {
         # --- Контакти ---
         "add-contact": handlers.add_contact,
-        "add-phone": handlers.add_phone,
-        "change-phone": handlers.change_phone,
-        "add-birthday": handlers.add_birthday,
-        "add-email": handlers.add_email,
-        "add-address": handlers.add_address,
+        "update-contact": handlers.update_contact,
         "show-contact": handlers.show_contact,
         "show-all": handlers.show_all,
-        "show-birthday": handlers.show_birthday,
         "birthdays": handlers.birthdays,
         # --- Нотатки ---
         "add-note": handlers.add_note,
@@ -55,16 +48,12 @@ def main():
 
     CONTACT_COMMANDS = [
         "add-contact",
-        "add-phone",
-        "change-phone",
-        "add-birthday",
-        "add-email",
-        "add-address",
+        "update-contact",
         "show-contact",
         "show-all",
-        "show-birthday",
         "birthdays",
     ]
+
     NOTE_COMMANDS = [
         "add-note",
         "add-tag",

@@ -1,21 +1,21 @@
+#
+#
+#
 import functools
 from .models import AddressBook, Record, NoteBook, Note
 from . import styles
 
-# --- Символи для "дерева" ---
+# Символи для "дерева"
 T_BRANCH = "├──"
 L_BRANCH = "└──"
 V_LINE = "│  "
 EMPTY = "   "
 
 
+# Декоратор для обробки помилок
 def input_error(func):
     """
-    Декоратор, який обробляє помилки вводу.
-    Всі помилки валідації (ValueError),
-    помилки пошуку (KeyError, AttributeError) та
-    помилки вводу (IndexError) будуть оброблені
-    та повернуть стилізоване повідомлення.
+    Декоратор, який обробляє помилки вводу
     """
 
     @functools.wraps(func)
@@ -29,13 +29,14 @@ def input_error(func):
         except AttributeError:
             return f"{styles.ERROR}AttributeError: Контакт не знайдено або невірний атрибут."
         except IndexError:
-            return f"{styles.WARNING}Not enough arguments. Please provide full info."
+            return f"{styles.WARNING}Недостатньо аргументів."
         except Exception as e:
             return f"{styles.ERROR}An unexpected error occurred: {e}"
 
     return inner
 
 
+# Функція для пошуку контакту
 def get_record(name: str, book: AddressBook) -> Record:
     """Знаходить запис або кидає KeyError."""
     record = book.find(name)
@@ -44,88 +45,147 @@ def get_record(name: str, book: AddressBook) -> Record:
     return record
 
 
+# Обробники для контактів
 @input_error
 def add_contact(args: list, book: AddressBook) -> str:
     """
-    Створює новий контакт.
-    Приймає: [name]
+    Створює новий контакт з опціональними полями.
+    Приймає: [name] (опціонально: phone [phone] email [email] birthday [bday] address [addr...])
+    'address' має бути останнім параметром, оскільки він зчитує всі наступні слова
     """
+    if not args:
+        raise IndexError
+
     name = args[0]
     if book.find(name):
         raise ValueError(f"Contact '{name}' already exists.")
 
     record = Record(name)
+
+    # Парсимо решту аргументів
+    args_data = args[1:]
+    messages = []
+
+    i = 0
+    while i < len(args_data):
+        keyword = args_data[i].lower()
+
+        try:
+            if keyword == "phone":
+                i += 1
+                record.add_phone(args_data[i])
+                messages.append(f"додано телефон {args_data[i]}")
+
+            elif keyword == "email":
+                i += 1
+                record.add_email(args_data[i])
+                messages.append(f"додано email {args_data[i]}")
+
+            elif keyword == "birthday":
+                i += 1
+                record.add_birthday(args_data[i])
+                messages.append(f"додано день народження {args_data[i]}")
+
+            elif keyword == "address":
+                i += 1
+                address_parts = args_data[i:]
+                if not address_parts:
+                    raise IndexError
+
+                address = " ".join(address_parts)
+                record.add_address(address)
+                messages.append("додано адресу")
+                break
+
+            else:
+                raise ValueError(
+                    f"Невідоме ключове слово '{args_data[i]}'. Очікувалось 'phone', 'email', 'birthday' або 'address'."
+                )
+
+        except IndexError:
+            raise ValueError(f"Не вказано значення для '{keyword}'.")
+
+        i += 1
+
     book.add_record(record)
-    return f"{styles.SUCCESS}Контакт '{name}' успішно створено."
+
+    if messages:
+        return f"{styles.SUCCESS}Контакт '{name}' створено ({', '.join(messages)})."
+    else:
+        return f"{styles.SUCCESS}Контакт '{name}' успішно створено."
 
 
 @input_error
-def add_phone(args: list, book: AddressBook) -> str:
+def update_contact(args: list, book: AddressBook) -> str:
     """
-    Додає телефону до існуючого контакту.
-    Приймає: [name] [phone]
+    Оновлює поля існуючого контакту (додає телефон, замінює email/bday/address).
+    Приймає: [name] phone [phone] email [email] birthday [bday] address [addr...]
+    'address' має бути останнім параметром
     """
-    name, phone = args
+    if not args:
+        raise IndexError
+
+    name = args[0]
     record = get_record(name, book)
-    record.add_phone(phone)
-    return f"{styles.SUCCESS}Телефон '{phone}' додано до контакту '{name}'."
 
+    args_data = args[1:]
+    if not args_data:
+        raise ValueError("Вкажіть хоча б одне поле для оновлення (phone, email, etc.).")
 
-@input_error
-def change_phone(args: list, book: AddressBook) -> str:
-    """
-    Змінює телефон для існуючого контакту.
-    Приймає: [name] [old_phone] [new_phone]
-    """
-    name, old_phone, new_phone = args
-    record = get_record(name, book)
-    record.edit_phone(old_phone, new_phone)
-    return f"{styles.SUCCESS}Телефон для '{name}' змінено з '{old_phone}' на '{new_phone}'."
+    messages = []
 
+    i = 0
+    while i < len(args_data):
+        keyword = args_data[i].lower()
 
-@input_error
-def add_birthday(args: list, book: AddressBook) -> str:
-    """
-    Додає день народження до контакту.
-    Приймає: [name] [dd.mm.yyyy]
-    """
-    name, bday_str = args
-    record = get_record(name, book)
-    record.add_birthday(bday_str)
-    return f"{styles.SUCCESS}День народження додано для '{name}'."
+        try:
+            if keyword == "phone":
+                i += 1
+                record.add_phone(args_data[i])  # add_phone додає до списку
+                messages.append(f"додано телефон {args_data[i]}")
 
+            elif keyword == "email":
+                i += 1
+                record.add_email(args_data[i])  # add_email замінює
+                messages.append("оновлено email")
 
-@input_error
-def add_email(args: list, book: AddressBook) -> str:
-    """
-    Додає email до контакту.
-    Приймає: [name] [email]
-    """
-    name, email = args
-    record = get_record(name, book)
-    record.add_email(email)
-    return f"{styles.SUCCESS}Email додано для '{name}'."
+            elif keyword == "birthday":
+                i += 1
+                record.add_birthday(args_data[i])  # add_birthday замінює
+                messages.append("оновлено день народження")
 
+            elif keyword == "address":
+                i += 1
+                address_parts = args_data[i:]
+                if not address_parts:
+                    raise IndexError
+                address = " ".join(address_parts)
+                record.add_address(address)  # add_address замінює
+                messages.append("оновлено адресу")
+                break
 
-@input_error
-def add_address(args: list, book: AddressBook) -> str:
-    """
-    Додає адресу до контакту.
-    Приймає: [name] [address...] (адреса може бути з пробілами)
-    """
-    name, *address_parts = args
-    address = " ".join(address_parts)
-    if not address:
-        raise ValueError("Address cannot be empty.")
-    record = get_record(name, book)
-    record.add_address(address)
-    return f"{styles.SUCCESS}Адресу додано для '{name}'."
+            else:
+                raise ValueError(
+                    f"Невідоме ключове слово '{args_data[i]}'. Очікувалось 'phone', 'email', 'birthday' або 'address'."
+                )
+
+        except IndexError:
+            raise ValueError(f"Не вказано значення для '{keyword}'.")
+
+        i += 1
+
+    if messages:
+        return f"{styles.SUCCESS}Контакт '{name}' оновлено ({', '.join(messages)})."
+    else:
+        return (
+            f"{styles.WARNING}Для контакту '{name}' не було надано даних для оновлення."
+        )
 
 
 @input_error
 def show_contact(args: list, book: AddressBook) -> str:
     """
-    Показує один контакт в деревовидному форматі.
+    Показує один контакт у деревовидному форматі.
     Приймає: [name]
     """
     name = args[0]
@@ -147,6 +207,7 @@ def show_contact(args: list, book: AddressBook) -> str:
         response.append(f" {L_BRANCH} {styles.WARNING}No additional details.")
         return "\n".join(response)
 
+    # Малюємо "дерево" деталей
     for i, (title, items) in enumerate(details):
         is_last_detail = i == len(details) - 1
         branch = L_BRANCH if is_last_detail else T_BRANCH
@@ -165,8 +226,7 @@ def show_contact(args: list, book: AddressBook) -> str:
 @input_error
 def show_all(args: list, book: AddressBook) -> str:
     """
-    Показує всі контакти. 'args' не використовується,
-    але присутній для сумісності з диспетчером
+    Показує всі контакти. 'args' не використовується
     """
     if not book.data:
         return f"{styles.WARNING}Адресна книга порожня."
@@ -175,19 +235,6 @@ def show_all(args: list, book: AddressBook) -> str:
     for record in book.data.values():
         response.append(str(record))
     return "\n".join(response)
-
-
-@input_error
-def show_birthday(args: list, book: AddressBook) -> str:
-    """
-    Показує день народження контакту.
-    Приймає: [name]
-    """
-    name = args[0]
-    record = get_record(name, book)
-    if record.birthday:
-        return f"{styles.INFO}{record.name.value}'s birthday: {str(record.birthday)}"
-    return f"{styles.WARNING}Birthday not set for {name}."
 
 
 @input_error
@@ -217,10 +264,11 @@ def birthdays(args: list, book: AddressBook) -> str:
     return "\n".join(response)
 
 
+# Нотатки
 @input_error
 def add_note(args: list, notes: NoteBook) -> str:
     """
-    Додає нотатку.
+    Додає нотатку
     Приймає: [text...] (текст нотатки)
     """
     text = " ".join(args)
@@ -235,7 +283,7 @@ def add_note(args: list, notes: NoteBook) -> str:
 @input_error
 def add_tag(args: list, notes: NoteBook) -> str:
     """
-    Додає теги до нотатки.
+    Додає теги до нотатки
     Приймає: [note_id] [tag1] [tag2] ...
     """
     note_id, *tags = args
@@ -253,7 +301,7 @@ def add_tag(args: list, notes: NoteBook) -> str:
 
 @input_error
 def show_notes(args: list, notes: NoteBook) -> str:
-    """Показує всі нотатки."""
+    """Показує всі нотатки"""
     if not notes.data:
         return f"{styles.WARNING}Книга нотаток порожня."
 
@@ -266,7 +314,7 @@ def show_notes(args: list, notes: NoteBook) -> str:
 @input_error
 def find_note(args: list, notes: NoteBook) -> str:
     """
-    Пошук нотаток за текстом.
+    Пошук нотаток за текстом
     Приймає: [query...]
     """
     query = " ".join(args)
@@ -284,7 +332,7 @@ def find_note(args: list, notes: NoteBook) -> str:
 @input_error
 def find_tag(args: list, notes: NoteBook) -> str:
     """
-    Пошук нотаток за тегом.
+    Пошук нотаток за тегом
     Приймає: [tag_query]
     """
     tag_query = " ".join(args)
@@ -302,7 +350,7 @@ def find_tag(args: list, notes: NoteBook) -> str:
 @input_error
 def delete_note(args: list, notes: NoteBook) -> str:
     """
-    Видаляє нотатку за ID.
+    Видаляє нотатку за ID
     Приймає: [note_id]
     """
     note_id = args[0]
@@ -314,7 +362,7 @@ def delete_note(args: list, notes: NoteBook) -> str:
 def sort_notes_by_tags(args: list, notes: NoteBook) -> str:
     """
     Сортує та виводить нотатки за тегами (за алфавітом першого тега).
-    'args' не використовується.
+    'args' не використовується
     """
     sorted_notes = notes.sort_by_tags()
 
