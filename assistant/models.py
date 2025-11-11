@@ -150,7 +150,7 @@ class AddressBook(UserDict):
         else:
             raise KeyError(f"Contact '{name}' not found.")
 
-    def get_upcoming_birthdays(self, days: int) -> list:  # ЗМІНЕНО: Приймає 'days'
+    def get_upcoming_birthdays(self, days: int) -> list:
         """
         Повертає список контактів, яких треба привітати
         протягом наступних 'days' днів, враховуючи вихідні
@@ -267,7 +267,7 @@ class NoteBook(UserDict):
                     break
         return found_notes
 
-    def sort_by_tags(self) -> list:  # Бонусна функція
+    def sort_by_tags(self) -> list:
         """
         Сортує нотатки за кількістю тегів (та за алфавітом тегів)
         """

@@ -4,7 +4,7 @@
 import pickle
 from .models import AddressBook, NoteBook
 import os
-from . import config  # <--- НОВЕ: Імпортуємо наш конфіг
+from . import config
 
 
 def save_data(book: AddressBook, notes: NoteBook, filename=config.DEFAULT_STORAGE_PATH):
