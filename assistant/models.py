@@ -34,7 +34,7 @@ class Name(Field):
     @Field.value.setter
     def value(self, new_value):
         if not new_value:
-            raise ValueError("Name cannot be empty.")
+            raise ValueError("Ім'я не може бути порожнім.")
         self._value = new_value
 
 
@@ -44,7 +44,7 @@ class Phone(Field):
     @Field.value.setter
     def value(self, new_value):
         if not (len(new_value) == 10 and new_value.isdigit()):
-            raise ValueError("Invalid phone number: must be 10 digits.")
+            raise ValueError("Невірний номер телефону: має бути 10 цифр.")
         self._value = new_value
 
 
@@ -57,7 +57,7 @@ class Birthday(Field):
             parsed_date = datetime.strptime(new_value, "%d.%m.%Y").date()
             self._value = parsed_date
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise ValueError("Невірний формат дати. Використовуйте DD.MM.YYYY")
 
     def __str__(self):
         return self._value.strftime("%d.%m.%Y")
@@ -69,7 +69,7 @@ class Email(Field):
     @Field.value.setter
     def value(self, new_value: str):
         if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", new_value):
-            raise ValueError("Invalid email format.")
+            raise ValueError("Невірний формат email.")
         self._value = new_value
 
 
@@ -120,10 +120,10 @@ class Record:
 
         # Якщо data_str порожній, виводимо "No data"
         if not data_str:
-            data_str = "No additional data"
+            data_str = "Немає додаткових даних."
 
         # Повертаємо чистий, відформатований рядок
-        return f"Contact name: {self.name.value} [{data_str}]"
+        return f"Контакт: {self.name.value} [{data_str}]"
 
 
 class AddressBook(UserDict):
@@ -139,7 +139,7 @@ class AddressBook(UserDict):
         if name in self.data:
             del self.data[name]
         else:
-            raise KeyError(f"Contact '{name}' not found.")
+            raise KeyError(f"Контакт '{name}' не знайдено.")
 
     def get_upcoming_birthdays(self, days: int) -> list:
         """
@@ -210,7 +210,7 @@ class Note:
         if tag_to_remove:
             self.tags.remove(tag_to_remove)
         else:
-            raise ValueError(f"Tag '{tag_text}' not found.")
+            raise ValueError(f"Тег '{tag_text}' не знайдено.")
 
     def __str__(self):
         tags_str = ", ".join(t.value for t in self.tags)
@@ -240,7 +240,7 @@ class NoteBook(UserDict):
         if note_id in self.data:
             del self.data[note_id]
         else:
-            raise KeyError(f"Note with ID '{note_id}' not found.")
+            raise KeyError(f"Нотатку з ID '{note_id}' не знайдено.")
 
     def search_by_text(self, query: str) -> list:
         """Пошук нотаток, що містять 'query' в тексті."""

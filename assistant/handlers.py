@@ -84,7 +84,7 @@ def input_error(func):
         except IndexError:
             return f"{styles.WARNING}Недостатньо аргументів."
         except Exception as e:
-            return f"{styles.ERROR}An unexpected error occurred: {e}"
+            return f"{styles.ERROR}Сталася непередбачена помилка: {e}"
 
     return inner
 
@@ -283,7 +283,7 @@ def add_note(args: list, notes: NoteBook) -> str:
     """
     text = " ".join(args)
     if not text:
-        raise ValueError("Note text cannot be empty.")
+        raise ValueError("Текст нотатки не може бути порожнім.")
 
     note = Note(text)
     notes.add_note(note)
@@ -298,11 +298,11 @@ def add_tag(args: list, notes: NoteBook) -> str:
     """
     note_id, *tags = args
     if not tags:
-        raise ValueError("Please provide at least one tag.")
+        raise ValueError("Введіть хоча б один тег.")
 
     note = notes.find_by_id(note_id)
     if note is None:
-        raise KeyError(f"Note with ID '{note_id}'")
+        raise KeyError(f"Нотатку з ID '{note_id}' не знайдено")
 
     for tag in tags:
         note.add_tag(tag)
