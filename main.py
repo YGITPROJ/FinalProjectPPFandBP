@@ -44,6 +44,8 @@ def main():
         "find-tag": handlers.find_tag,
         "sort-notes": handlers.sort_notes_by_tags,
         "delete-note": handlers.delete_note,
+        # --- Інше ---
+        "help": handlers.show_help,  # <--- ДОДАНО: Додано 'help'
     }
 
     CONTACT_COMMANDS = [
@@ -62,8 +64,11 @@ def main():
         "find-tag",
         "sort-notes",
         "delete-note",
+        
     ]
-
+# <--- ДОДАНО: Новий список для команд, що не потребують 'book' або 'notes'
+    OTHER_COMMANDS = ["help"]
+    
     while True:
         try:
             user_input = input(f"{styles.PROMPT}Введіть команду: ")
@@ -87,13 +92,19 @@ def main():
                     result = handler(args, book)
                 elif command in NOTE_COMMANDS:
                     result = handler(args, notes)
+                # <--- ДОДАНО: Оновлений блок для обробки 'help'
+                elif command in OTHER_COMMANDS:
+                    result = handler()  # Виклик без 'args', 'book' чи 'notes'
                 else:
                     result = f"{styles.ERROR}Помилка диспетчера: невідомий тип команди."
 
                 print(result)
 
             else:
-                print(f"{styles.ERROR}Невідома команда. Спробуйте ще раз.")
+                # <--- ЗМІНЕНО: Покращене повідомлення про помилку
+                print(
+                    f"{styles.ERROR}Невідома команда. Введіть 'help' для списку команд."
+                )
 
         except KeyboardInterrupt:
             save_data(book, notes)
