@@ -273,6 +273,27 @@ def birthdays(args: list, book: AddressBook) -> str:
 
     return "\n".join(response)
 
+@input_error
+def find_contact(args: list, book: AddressBook) -> str:
+    """
+    Пошук контактів за текстом.
+    Приймає: [query...]
+    """
+    query = " ".join(args)
+    if not query:
+        raise ValueError("Введіть пошуковий запит.")
+
+    found = book.search(query)
+
+    if not found:
+        return f"{styles.WARNING}Не знайдено контактів, що відповідають запиту '{query}'."
+
+    response = [f"{styles.SUCCESS}Контакти, що відповідають запиту '{query}':"]
+    # Використовуємо той самий __str__ з Record, що і в show_all
+    for record in found:
+        response.append(str(record))
+    return "\n".join(response)
+
 
 # Нотатки
 @input_error

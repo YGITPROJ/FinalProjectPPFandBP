@@ -44,6 +44,7 @@ def main():
         "show-contact": handlers.show_contact,
         "show-all": handlers.show_all,
         "birthdays": handlers.birthdays,
+        "find-contact": handlers.find_contact,
         # --- Нотатки ---
         "add-note": handlers.add_note,
         "add-tag": handlers.add_tag,
@@ -60,6 +61,7 @@ def main():
         "show-contact",
         "show-all",
         "birthdays",
+        "find-contact",
     ]
 
     NOTE_COMMANDS = [

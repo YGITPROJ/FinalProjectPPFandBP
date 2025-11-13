@@ -178,6 +178,39 @@ class AddressBook(UserDict):
                     }
                 )
         return upcoming_birthdays
+    
+    # models.py (всередині класу AddressBook)
+
+    def search(self, query: str) -> list[Record]:
+        """
+        Пошук контактів за рядком запиту.
+        Шукає збіги в імені, телефоні, email, адресі та дні народження.
+        """
+        found_records = []
+        query_lower = query.lower()
+
+        for record in self.data.values():
+            # Створюємо список полів для перевірки
+            fields_to_check = [
+                record.name,
+                record.phone,
+                record.email,
+                record.address,
+                record.birthday
+            ]
+
+            for field in fields_to_check:
+                # Перевіряємо, чи поле існує (не None)
+                if field is not None:
+                    # Використовуємо str(field), щоб коректно обробити
+                    # Name, Phone, Email, Address, і Birthday (з його __str__)
+                    if query_lower in str(field).lower():
+                        found_records.append(record)
+                        # Контакт вже знайдено і додано,
+                        # можна переходити до наступного контакту
+                        break
+        
+        return found_records
 
 
 class Tag(Field):
