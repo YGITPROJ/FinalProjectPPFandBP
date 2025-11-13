@@ -127,15 +127,15 @@ def add_contact(args: list, book: AddressBook) -> str:
 
     if data["email"]:
         record.add_email(data["email"])
-        messages.append("додано email")
+        messages.append(f"додано email {data['email']}")
 
     if data["birthday"]:
         record.add_birthday(data["birthday"])
-        messages.append("додано день народження")
+        messages.append(f"додано день народження {data['birthday']}")
 
     if data["address"]:
         record.add_address(data["address"])
-        messages.append("додано адресу")
+        messages.append(f"додано адресу {data['address']}")
 
     book.add_record(record)
 
@@ -175,15 +175,15 @@ def update_contact(args: list, book: AddressBook) -> str:
 
     if data["email"]:
         record.add_email(data["email"])
-        messages.append("оновлено email")
+        messages.append(f"оновлено email на {data['email']}")
 
     if data["birthday"]:
         record.add_birthday(data["birthday"])
-        messages.append("оновлено день народження")
+        messages.append(f"оновлено день народження на {data['birthday']}")
 
     if data["address"]:
         record.add_address(data["address"])
-        messages.append("оновлено адресу")
+        messages.append(f"оновлено адресу на {data['address']}")
 
     if messages:
         return f"{styles.SUCCESS}Контакт '{record.name.value}' оновлено ({', '.join(messages)})."
