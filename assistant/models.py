@@ -1,5 +1,5 @@
 #
-#
+# models.py
 #
 import re
 from collections import UserDict
@@ -34,7 +34,7 @@ class Name(Field):
     @Field.value.setter
     def value(self, new_value):
         if not new_value:
-            raise ValueError("Name cannot be empty.")
+            raise ValueError("Ім'я не може бути порожнім.")
         self._value = new_value
 
 
@@ -44,7 +44,7 @@ class Phone(Field):
     @Field.value.setter
     def value(self, new_value):
         if not (len(new_value) == 10 and new_value.isdigit()):
-            raise ValueError("Invalid phone number: must be 10 digits.")
+            raise ValueError("Невірний формат телефону: має бути 10 цифр.")
         self._value = new_value
 
 
@@ -57,7 +57,7 @@ class Birthday(Field):
             parsed_date = datetime.strptime(new_value, "%d.%m.%Y").date()
             self._value = parsed_date
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise ValueError("Невірний формат дати. Використовуйте ДД.ММ.РРРР")
 
     def __str__(self):
         return self._value.strftime("%d.%m.%Y")
@@ -69,7 +69,7 @@ class Email(Field):
     @Field.value.setter
     def value(self, new_value: str):
         if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", new_value):
-            raise ValueError("Invalid email format.")
+            raise ValueError("Невірний формат email.")
         self._value = new_value
 
 
@@ -99,14 +99,16 @@ class Record:
         if phone_to_remove:
             self.phones.remove(phone_to_remove)
         else:
-            raise ValueError(f"Phone number {phone_number} not found.")
+            # ЗМІНЕНО: Оновлено
+            raise ValueError(f"Номер телефону {phone_number} не знайдено.")
 
     def edit_phone(self, old_phone_number: str, new_phone_number: str):
         phone_to_edit = self.find_phone(old_phone_number)
         if phone_to_edit:
             phone_to_edit.value = new_phone_number
         else:
-            raise ValueError(f"Phone number {old_phone_number} not found.")
+            # ЗМІНЕНО: Оновлено
+            raise ValueError(f"Номер телефону {old_phone_number} не знайдено.")
 
     def find_phone(self, phone_number: str):
         for phone in self.phones:
@@ -148,7 +150,8 @@ class AddressBook(UserDict):
         if name in self.data:
             del self.data[name]
         else:
-            raise KeyError(f"Contact '{name}' not found.")
+            # ЗАВДАННЯ 1: Оновлено
+            raise KeyError(f"Контакт '{name}'")
 
     def get_upcoming_birthdays(self, days: int) -> list:
         """
@@ -168,16 +171,23 @@ class AddressBook(UserDict):
                 bday_this_year = bday.replace(year=today.year + 1)
 
             delta_days = (bday_this_year - today).days
-
-            # Перевіряємо, чи день народження в межах заданого 'days'
-            if 0 <= delta_days < days:
+            
+            # ЗМІНЕНО: Враховуємо '0' (сьогодні)
+            if 0 <= delta_days <= days:
                 weekday = bday_this_year.weekday()
 
-                if weekday >= 5:
-                    # Переносимо на понеділок
-                    day_to_congratulate = bday_this_year.strftime("%A (%A in fact)")
+                # Логіка перенесення з вихідних
+                if weekday == 5:  # Субота
+                    day_to_congratulate = "Monday"
+                elif weekday == 6:  # Неділя
+                    day_to_congratulate = "Monday"
                 else:
-                    day_to_congratulate = bday_this_year.strftime("%A")
+                    day_to_congratulate = bday_this_year.strftime("%A") # Напр. "Tuesday"
+
+                # Якщо ДН сьогодні (delta_days == 0), то вітаємо сьогодні
+                if delta_days == 0:
+                    day_to_congratulate = "Today (" + bday_this_year.strftime("%A") + ")"
+
 
                 upcoming_birthdays.append(
                     {
@@ -219,7 +229,8 @@ class Note:
         if tag_to_remove:
             self.tags.remove(tag_to_remove)
         else:
-            raise ValueError(f"Tag '{tag_text}' not found.")
+            # ЗМІНЕНО: Оновлено
+            raise ValueError(f"Тег '{tag_text}' не знайдено.")
 
     def __str__(self):
         tags_str = ", ".join(t.value for t in self.tags)
@@ -249,7 +260,8 @@ class NoteBook(UserDict):
         if note_id in self.data:
             del self.data[note_id]
         else:
-            raise KeyError(f"Note with ID '{note_id}' not found.")
+            # ЗМІНЕНО: Оновлено
+            raise KeyError(f"Нотатка з ID '{note_id}'")
 
     def search_by_text(self, query: str) -> list:
         """Пошук нотаток, що містять 'query' в тексті."""
