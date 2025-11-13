@@ -12,7 +12,7 @@ V_LINE = "│  "
 EMPTY = "   "
 
 
-# --- ЗАВДАННЯ 1: Оновлений декоратор ---
+# --- ЗМІНЕНО: Оновлений декоратор ---
 # Прибирає технічні префікси (ValueError, KeyError) та робить повідомлення чистішими
 def input_error(func):
     """
@@ -37,7 +37,7 @@ def input_error(func):
     return inner
 
 
-# --- ЗАВДАННЯ 2: Нова функція 'help' ---
+# --- ДОДАНО: Нова функція 'help' ---
 
 # Словник для help, який легко редагувати
 COMMANDS_HELP = {
@@ -97,7 +97,7 @@ def get_record(name: str, book: AddressBook) -> Record:
     """Знаходить запис або кидає KeyError."""
     record = book.find(name)
     if record is None:
-        # ЗАВДАННЯ 1: Покращене повідомлення
+        # ЗМІНЕНО: Покращене повідомлення
         raise KeyError(f"Контакт '{name}'")
     return record
 
@@ -115,7 +115,7 @@ def add_contact(args: list, book: AddressBook) -> str:
 
     name = args[0]
     if book.find(name):
-        # ЗАВДАННЯ 1: Покращене повідомлення
+        # ЗМІНЕНО: Покращене повідомлення
         raise ValueError(f"Контакт '{name}' вже існує.")
 
     record = Record(name)
@@ -295,7 +295,7 @@ def show_all(args: list, book: AddressBook) -> str:
     return "\n".join(response)
 
 
-# --- ЗАВДАННЯ 3: Оновлена функція 'birthdays' ---
+# --- ЗМІНЕНО: Оновлена функція 'birthdays' ---
 @input_error
 def birthdays(args: list, book: AddressBook) -> str:
     """
@@ -363,7 +363,7 @@ def add_note(args: list, notes: NoteBook) -> str:
     """
     text = " ".join(args)
     if not text:
-        # ЗАВДАННЯ 1: Покращене повідомлення
+        # ЗМІНЕНО: Покращене повідомлення
         raise ValueError("Текст нотатки не може бути порожнім.")
 
     note = Note(text)
@@ -383,7 +383,7 @@ def add_tag(args: list, notes: NoteBook) -> str:
 
     note = notes.find_by_id(note_id)
     if note is None:
-        # ЗАВДАННЯ 1: Покращене повідомлення
+        # ЗМІНЕНО: Покращене повідомлення
         raise KeyError(f"Нотатка з ID '{note_id}'")
 
     for tag in tags:
