@@ -1,6 +1,6 @@
 #
-# === Твій main.py (ПОВНА ВЕРСІЯ) ===
 #
+# 
 import difflib
 from assistant.models import AddressBook, NoteBook
 from assistant.storage import load_data, save_data
