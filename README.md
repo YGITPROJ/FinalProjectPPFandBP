@@ -39,13 +39,14 @@ It features a robust command parser that understands quoted arguments (e.g., for
 
 ## **Installation**
 
-1. **Clone the repository:**  
-   git clone https://github.com/YGITPROJ/FinalProjectPPFandBP.git
-   cd FinalProjectPPFandBP
+1. **Clone the repository:**
+
+   - git clone https://github.com/YGITPROJ/FinalProjectPPFandBP.git
+   - cd FinalProjectPPFandBP
 
 2. **Install dependencies:**
-   This project uses colorama for styling.  
-   pip install colorama
+   - This project uses colorama for styling.
+   - pip install colorama
 
 ## **Usage**
 
