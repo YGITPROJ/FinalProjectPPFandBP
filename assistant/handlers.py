@@ -1,5 +1,5 @@
 #
-# handlers.py
+#
 #
 import functools
 from .models import AddressBook, Record, NoteBook, Note
@@ -12,8 +12,9 @@ V_LINE = "│  "
 EMPTY = "   "
 
 
-# --- ЗМІНЕНО: Оновлений декоратор ---
-# Прибирає технічні префікси (ValueError, KeyError) та робить повідомлення чистішими
+# Декоратор для обробки помилок
+
+
 def input_error(func):
     """
     Декоратор, який обробляє помилки вводу
@@ -30,7 +31,9 @@ def input_error(func):
         except AttributeError:
             return f"{styles.ERROR}Контакт не знайдено або невірний атрибут."
         except IndexError:
-            return f"{styles.WARNING}Недостатньо аргументів. Введіть 'help' для довідки."
+            return (
+                f"{styles.WARNING}Недостатньо аргументів. Введіть 'help' для довідки."
+            )
         except Exception as e:
             return f"{styles.ERROR}An unexpected error occurred: {e}"
 
@@ -78,13 +81,13 @@ def show_help():
     all_commands = []
     for category, commands in COMMANDS_HELP.items():
         response.append(f"\n {styles.INFO}{category}:")
-        
+
         # Збираємо команди для коректного малювання гілок
         command_items = list(commands.items())
         for i, (cmd, desc) in enumerate(command_items):
             is_last = i == len(command_items) - 1
             branch = L_BRANCH if is_last else T_BRANCH
-            
+
             line = f"  {branch} {styles.WARNING}{cmd:<18} {styles.PROMPT}- {desc}"
             response.append(line)
 
@@ -97,7 +100,7 @@ def get_record(name: str, book: AddressBook) -> Record:
     """Знаходить запис або кидає KeyError."""
     record = book.find(name)
     if record is None:
-        # ЗМІНЕНО: Покращене повідомлення
+
         raise KeyError(f"Контакт '{name}'")
     return record
 
@@ -115,7 +118,7 @@ def add_contact(args: list, book: AddressBook) -> str:
 
     name = args[0]
     if book.find(name):
-        # ЗМІНЕНО: Покращене повідомлення
+
         raise ValueError(f"Контакт '{name}' вже існує.")
 
     record = Record(name)
@@ -295,7 +298,6 @@ def show_all(args: list, book: AddressBook) -> str:
     return "\n".join(response)
 
 
-# --- ЗМІНЕНО: Оновлена функція 'birthdays' ---
 @input_error
 def birthdays(args: list, book: AddressBook) -> str:
     """
@@ -323,20 +325,26 @@ def birthdays(args: list, book: AddressBook) -> str:
             days_ahead = int(args[0])
 
     except (IndexError, ValueError):
-        raise ValueError(f"Невірна кількість днів. Введіть число (напр., '7') або '-n 7'.")
+        raise ValueError(
+            f"Невірна кількість днів. Введіть число (напр., '7') або '-n 7'."
+        )
 
     upcoming = book.get_upcoming_birthdays(days_ahead)
 
     if not upcoming:
         if days_ahead == 0:
             return f"{styles.INFO}Сьогодні ніхто не святкує день народження."
-        return f"{styles.INFO}Немає найближчих днів народження протягом {days_ahead} днів."
+        return (
+            f"{styles.INFO}Немає найближчих днів народження протягом {days_ahead} днів."
+        )
 
     # Форматуємо у вигляді таблиці
     if days_ahead == 0:
         header = f"\n{styles.SUCCESS}--- Дні Народження Сьогодні ---"
     else:
-        header = f"\n{styles.SUCCESS}--- Дні Народження (наступні {days_ahead} днів) ---"
+        header = (
+            f"\n{styles.SUCCESS}--- Дні Народження (наступні {days_ahead} днів) ---"
+        )
 
     response = [header]
     # Заголовки таблиці
@@ -363,7 +371,7 @@ def add_note(args: list, notes: NoteBook) -> str:
     """
     text = " ".join(args)
     if not text:
-        # ЗМІНЕНО: Покращене повідомлення
+
         raise ValueError("Текст нотатки не може бути порожнім.")
 
     note = Note(text)
@@ -383,7 +391,7 @@ def add_tag(args: list, notes: NoteBook) -> str:
 
     note = notes.find_by_id(note_id)
     if note is None:
-        # ЗМІНЕНО: Покращене повідомлення
+
         raise KeyError(f"Нотатка з ID '{note_id}'")
 
     for tag in tags:
@@ -446,8 +454,7 @@ def delete_note(args: list, notes: NoteBook) -> str:
     Приймає: [note_id]
     """
     note_id = args[0]
-    # Функція delete_note в NoteBook тепер кине KeyError
-    # Декоратор input_error його перехопить
+
     notes.delete_note(note_id)
     return f"{styles.SUCCESS}Нотатку {note_id} видалено."
 

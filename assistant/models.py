@@ -1,5 +1,5 @@
 #
-# models.py
+#
 #
 import re
 from collections import UserDict
@@ -99,7 +99,7 @@ class Record:
         if phone_to_remove:
             self.phones.remove(phone_to_remove)
         else:
-            # ЗМІНЕНО: Оновлено
+
             raise ValueError(f"Номер телефону {phone_number} не знайдено.")
 
     def edit_phone(self, old_phone_number: str, new_phone_number: str):
@@ -107,7 +107,7 @@ class Record:
         if phone_to_edit:
             phone_to_edit.value = new_phone_number
         else:
-            # ЗМІНЕНО: Оновлено
+
             raise ValueError(f"Номер телефону {old_phone_number} не знайдено.")
 
     def find_phone(self, phone_number: str):
@@ -150,7 +150,7 @@ class AddressBook(UserDict):
         if name in self.data:
             del self.data[name]
         else:
-            # ЗАВДАННЯ 1: Оновлено
+
             raise KeyError(f"Контакт '{name}'")
 
     def get_upcoming_birthdays(self, days: int) -> list:
@@ -171,8 +171,7 @@ class AddressBook(UserDict):
                 bday_this_year = bday.replace(year=today.year + 1)
 
             delta_days = (bday_this_year - today).days
-            
-            # ЗМІНЕНО: Враховуємо '0' (сьогодні)
+
             if 0 <= delta_days <= days:
                 weekday = bday_this_year.weekday()
 
@@ -182,12 +181,15 @@ class AddressBook(UserDict):
                 elif weekday == 6:  # Неділя
                     day_to_congratulate = "Monday"
                 else:
-                    day_to_congratulate = bday_this_year.strftime("%A") # Напр. "Tuesday"
+                    day_to_congratulate = bday_this_year.strftime(
+                        "%A"
+                    )  # Напр. "Tuesday"
 
                 # Якщо ДН сьогодні (delta_days == 0), то вітаємо сьогодні
                 if delta_days == 0:
-                    day_to_congratulate = "Today (" + bday_this_year.strftime("%A") + ")"
-
+                    day_to_congratulate = (
+                        "Today (" + bday_this_year.strftime("%A") + ")"
+                    )
 
                 upcoming_birthdays.append(
                     {
@@ -229,7 +231,7 @@ class Note:
         if tag_to_remove:
             self.tags.remove(tag_to_remove)
         else:
-            # ЗМІНЕНО: Оновлено
+
             raise ValueError(f"Тег '{tag_text}' не знайдено.")
 
     def __str__(self):
@@ -260,7 +262,7 @@ class NoteBook(UserDict):
         if note_id in self.data:
             del self.data[note_id]
         else:
-            # ЗМІНЕНО: Оновлено
+
             raise KeyError(f"Нотатка з ID '{note_id}'")
 
     def search_by_text(self, query: str) -> list:
