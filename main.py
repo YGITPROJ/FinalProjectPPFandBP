@@ -53,6 +53,7 @@ def main():
         "find-tag": handlers.find_tag,
         "sort-notes": handlers.sort_notes_by_tags,
         "delete-note": handlers.delete_note,
+        "update-note": handlers.update_note,
         # --- Загальні ---
         "help": handlers.show_help,
     }
@@ -74,6 +75,7 @@ def main():
         "find-tag",
         "sort-notes",
         "delete-note",
+        "update-note",
     ]
 
     GENERAL_COMMANDS = [
