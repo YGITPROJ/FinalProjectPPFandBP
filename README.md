@@ -66,42 +66,51 @@ You will be greeted with a prompt. Type help to see all available commands.
 **Contacts**
 
 - add-contact -n [Name] [-p Phone] [-e Email] [-b DD.MM.YYYY] [-a Address]
-  _Example: add-contact -n "John Doe" -p 1234567890 -e john@example.com_
+
+  - _Example: add-contact -n "John Doe" -p 1234567890 -e john@example.com_
 
 - update-contact -n [Name] [-p Phone] [-e Email] [-b DD.MM.YYYY] [-a Address]
-  _Example: update-contact -n "John Doe" -e new.email@example.com_
+
+  - _Example: update-contact -n "John Doe" -e new.email@example.com_
 
 - show-contact [Name]
-  _Example: show-contact "John Doe"_
+
+  - _Example: show-contact "John Doe"_
 
 - show-all
 
 - find-contact [Query]
-  _Example: find-contact John_
+
+  - _Example: find-contact John_
 
 - birthdays [N] [-d DD.MM.YYYY]
-  _Example 1: birthdays 10 (Show birthdays for the next 10 days from today)_
-  _Example 2: birthdays -d 01.01.2025 (Show birthdays for the next 7 days from Jan 1st, 2025)_
-  _Example 3: birthdays 15 -d 01.01.2025_
+  - _Example 1: birthdays 10 (Show birthdays for the next 10 days from today)_
+  - _Example 2: birthdays -d 01.01.2025 (Show birthdays for the next 7 days from Jan 1st, 2025)_
+  - _Example 3: birthdays 15 -d 01.01.2025_
 
 **Notes**
 
 - add-note [Text...]
-  _Example: add-note My first note about Python_
+
+  - _Example: add-note My first note about Python_
 
 - update-note [ID] [New text...]
-  _Example: update-note 1 This is the updated text._
+
+  - _Example: update-note 1 This is the updated text._
 
 - add-tag [ID] [tag1] [tag2...]
-  _Example: add-tag 1 python project_
+
+  - _Example: add-tag 1 python project_
 
 - show-notes
 
 - find-note [Query...]
-  _Example: find-note Python_
+
+  - _Example: find-note Python_
 
 - find-tag [Tag]
-  _Example: find-tag project_
+
+  - _Example: find-tag project_
 
 - sort-notes
 
@@ -111,18 +120,17 @@ You will be greeted with a prompt. Type help to see all available commands.
 
 Based on the imports, the project assumes the following structure:
 
-personal-assistant/
-├── main.py # Main entry point and command dispatcher
-├── requirements.txt # Project dependencies
-├── DB/ # Default directory for storing data (auto-created)
-│ └── assistant_data.pkl
-└── assistant/
-├── **init**.py
-├── models.py # Core data classes (AddressBook, Record, NoteBook, Note)
-├── handlers.py # Business logic for all user commands
-├── storage.py # Handles saving and loading data (pickle)
-├── config.py # Configuration (e.g., storage path)
-└── styles.py # Manages terminal colors (colorama)
+personal-assistant/  
+├── main.py \# Main entry point and command dispatcher  
+├── DB/ \# Default directory for storing data (auto-created)  
+│ └── assistant_data.pkl  
+└── assistant/  
+ ├── \_\_init\_\_.py  
+ ├── models.py \# Core data classes (AddressBook, Record, NoteBook, Note)  
+ ├── handlers.py \# Business logic for all user commands  
+ ├── storage.py \# Handles saving and loading data (pickle)  
+ ├── config.py \# Configuration (e.g., storage path)  
+ └── styles.py \# Manages terminal colors (colorama)
 
 ## **Authors**
 
