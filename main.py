@@ -5,13 +5,21 @@ from assistant.models import AddressBook, NoteBook
 from assistant.storage import load_data, save_data
 from assistant import handlers
 from assistant import styles
+import shlex
 
 
 def parse_input(user_input: str) -> tuple:
     """
     Парсить введений рядок на команду та аргументи
+    Використовує shlex.split для коректної обробки лапок.
     """
-    parts = user_input.split()
+    try:
+        parts = shlex.split(user_input)
+    except ValueError as e:
+        # Ця обробка потрібна, якщо користувач не закрив лапки
+        print(f"{styles.ERROR}Помилка парсингу: {e} (можливо, незакриті лапки?)")
+        return None, []
+
     if not parts:
         return None, []
     cmd = parts[0].strip().lower()
@@ -36,6 +44,7 @@ def main():
         "show-contact": handlers.show_contact,
         "show-all": handlers.show_all,
         "birthdays": handlers.birthdays,
+        "find-contact": handlers.find_contact,
         # --- Нотатки ---
         "add-note": handlers.add_note,
         "add-tag": handlers.add_tag,
@@ -53,6 +62,7 @@ def main():
         "show-contact",
         "show-all",
         "birthdays",
+        "find-contact",
     ]
 
     NOTE_COMMANDS = [
