@@ -1,7 +1,6 @@
 #
 #
-# 
-import difflib
+#
 from assistant.models import AddressBook, NoteBook
 from assistant.storage import load_data, save_data
 from assistant import handlers
@@ -12,12 +11,12 @@ import shlex
 def parse_input(user_input: str) -> tuple:
     """
     Парсить введений рядок на команду та аргументи
-    Використовує shlex.split для коректної обробки лапок.
+    Використовує shlex.split для коректної обробки лапок
     """
     try:
         parts = shlex.split(user_input)
     except ValueError as e:
-        # Ця обробка потрібна, якщо користувач не закрив лапки
+        # Якщо користувач не закрив лапки
         print(f"{styles.ERROR}Помилка парсингу: {e} (можливо, незакриті лапки?)")
         return None, []
 
@@ -33,37 +32,31 @@ def main():
     Головна функція бота
     """
     book, notes = load_data()
-    print(f"{styles.INFO}Вітаю у персональному помічнику!")
+    print(f"{styles.INFO}Вітаю у персональному помічнику! (Введіть 'help' для довідки)")
 
     if "are_colors_enabled" in dir(styles):
         styles.are_colors_enabled()
 
-    # Словник ВСІХ команд, які "щось роблять"
     COMMANDS = {
         # --- Контакти ---
         "add-contact": handlers.add_contact,
         "update-contact": handlers.update_contact,
         "show-contact": handlers.show_contact,
+        "show-all": handlers.show_all,
         "birthdays": handlers.birthdays,
-        # (Додай сюди інші обробники контактів, якщо вони є)
-        
-        # --- Нотатки (всі, що ми додали) ---
-        "add-note": handlers.add_note,           # Створити
-        "find-note": handlers.find_note,       # Знайти за ID (фікс №1)
-        "show-notes": handlers.show_notes,     # Показати всі
-        "edit-note": handlers.edit_note_handler, # Редагувати (фікс №8)
-        "delete-note": handlers.delete_note,   # Видалити (фікс №8)
-        "search-notes": handlers.search_notes_handler, # Пошук за текстом (фікс №7)
-        
-        # --- Теги (Бонус) ---
+        "find-contact": handlers.find_contact,
+        # --- Нотатки ---
+        "add-note": handlers.add_note,
         "add-tag": handlers.add_tag,
-        "search-by-tag": handlers.search_by_tag,
+        "show-notes": handlers.show_notes,
+        "find-note": handlers.find_note,
+        "find-tag": handlers.find_tag,
         "sort-notes": handlers.sort_notes_by_tags,
         "delete-note": handlers.delete_note,
-        "help": handlers.show_help,  # <--- ДОДАНО: Додано 'help'
+        # --- Загальні ---
+        "help": handlers.show_help,
     }
 
-    # Списки для "диспетчера"
     CONTACT_COMMANDS = [
         "add-contact",
         "update-contact",
@@ -74,13 +67,18 @@ def main():
     ]
 
     NOTE_COMMANDS = [
-        "add-note", "find-note", "show-notes", "edit-note", 
-        "delete-note", "search-notes", "add-tag", 
-        "search-by-tag", "sort-notes"
+        "add-note",
+        "add-tag",
+        "show-notes",
+        "find-note",
+        "find-tag",
+        "sort-notes",
+        "delete-note",
     ]
-    
-    # Список ВСІХ можливих слів для "вгадування"
-    ALL_COMMANDS = list(COMMANDS.keys()) + ["hello", "close", "exit", "all"]
+
+    GENERAL_COMMANDS = [
+        "help",
+    ]
 
     while True:
         try:
@@ -88,7 +86,7 @@ def main():
             command, args = parse_input(user_input)
 
             if command is None:
-                continue # Пропускаємо порожній ввід
+                continue
 
             if command in ["close", "exit"]:
                 save_data(book, notes)
@@ -98,45 +96,28 @@ def main():
             elif command == "hello":
                 print(f"{styles.INFO}Чим можу допомогти?")
 
-            elif command == "all":
-                # 'all' - особлива команда
-                print(handlers.show_all(book, notes)) 
-
             elif command in COMMANDS:
-                handler = COMMANDS[command] 
-                result = ""
-                
+                handler = COMMANDS[command]
+
                 if command in CONTACT_COMMANDS:
-                    result = handler(args, book) # Передаємо 'book'
+                    result = handler(args, book)
                 elif command in NOTE_COMMANDS:
                     result = handler(args, notes)
-                elif command in OTHER_COMMANDS:
-                    result = handler()
+                elif command in GENERAL_COMMANDS:
+                    result = handler(args)
                 else:
-                    result = f"{styles.ERROR}Помилка диспетчера."
+                    result = f"{styles.ERROR}Помилка диспетчера: команда '{command}' не приєднана до жодної категорії."
 
-                print(result) # Друкуємо результат роботи
+                print(result)
 
             else:
-                # "Вгадування"
-                matches = difflib.get_close_matches(
-                    command, 
-                    ALL_COMMANDS, 
-                    n=1, 
-                    cutoff=0.7
-                )
-                
-                if matches:
-                    print(f"{styles.ERROR}Невідома команда. Можливо, ви мали на увазі: '{matches[0]}'?")
-                else:
-                    print(f"{styles.ERROR}Невідома команда. Спробуйте ще раз.")
+                print(f"{styles.ERROR}Невідома команда. Введіть 'help' для списку команд.")
 
         except KeyboardInterrupt:
             save_data(book, notes)
             print(f"\n{styles.WARNING}Вихід... Ваші дані збережено.")
             break
         except Exception as e:
-            # Обробка будь-яких інших помилок
             print(f"{styles.ERROR}Сталася критична помилка: {e}")
 
 

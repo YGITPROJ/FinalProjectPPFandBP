@@ -1,21 +1,22 @@
 #
-# === Твій handlers.py (ВИПРАВЛЕНО БЛОК НОТАТОК) ===
+#
 #
 import functools
-# ❗️ Імпортуємо ВСІ потрібні класи
 from .models import AddressBook, Record, NoteBook, Note
 from . import styles
+from datetime import datetime
 
-# (Символи для дерева - T_BRANCH, L_BRANCH...)
+# Символи для "дерева"
 T_BRANCH = "├──"
 L_BRANCH = "└──"
 V_LINE = "│  "
 EMPTY = "   "
 
+
 # --- NEW HELPER FUNCTION ---
 def _parse_contact_args(args: list) -> dict:
     """
-    Парсить список аргументів з ключами (-n, -p, -e, -b, -a) у словник.
+    Парсить список аргументів з ключами (-n, -p, -e, -b, -a) у словник
     """
     parsed_data = {
         "name": None,
@@ -28,7 +29,7 @@ def _parse_contact_args(args: list) -> dict:
     while i < len(args):
         key = args[i]
 
-        # Перевірка, чи є значення після ключа
+        # Чи є значення після ключа
         if i + 1 >= len(args):
             raise ValueError(f"Відсутнє значення для ключа '{key}'")
 
@@ -51,7 +52,9 @@ def _parse_contact_args(args: list) -> dict:
 
         elif key == "-b":
             if parsed_data["birthday"]:
-                raise ValueError("Ключ '-b' (birthday) може бути вказано лише один раз.")
+                raise ValueError(
+                    "Ключ '-b' (birthday) може бути вказано лише один раз."
+                )
             parsed_data["birthday"] = value
 
         elif key == "-a":
@@ -66,163 +69,95 @@ def _parse_contact_args(args: list) -> dict:
 
     return parsed_data
 
+
 # Декоратор для обробки помилок
-
-
 def input_error(func):
     """
     Декоратор, який обробляє помилки вводу
     """
+
     @functools.wraps(func)
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except ValueError as e:
-            return f"{styles.ERROR}{e}"  # Виводимо тільки текст помилки
+            return f"{styles.ERROR}ValueError: {e}"
         except KeyError as e:
-            return f"{styles.ERROR}Не знайдено: {e}"  # Більш загальне повідомлення
+            # Змінено, щоб коректно показувати ID або Ім'я
+            return f"{styles.ERROR}KeyError: {e}"
         except AttributeError:
-            return f"{styles.ERROR}Контакт не знайдено або невірний атрибут."
+            return f"{styles.ERROR}AttributeError: Контакт не знайдено або невірний атрибут."
         except IndexError:
-            return (
-                f"{styles.WARNING}Недостатньо аргументів. Введіть 'help' для довідки."
-            )
+            return f"{styles.WARNING}Недостатньо аргументів."
         except Exception as e:
             return f"{styles.ERROR}Сталася непередбачена помилка: {e}"
 
     return inner
 
 
-# --- ДОДАНО: Нова функція 'help' ---
-
-# Словник для help, який легко редагувати
-COMMANDS_HELP = {
-    "Контакти": {
-        "add-contact": "add-contact [name] phone [phone] email [email]...",
-        "update-contact": "update-contact [name] phone [phone]...",
-        "show-contact": "show-contact [name]",
-        "show-all": "show-all",
-        "birthdays": "birthdays (або -n [days])",
-    },
-    "Нотатки": {
-        "add-note": "add-note [text...]",
-        "add-tag": "add-tag [note_id] [tag...]",
-        "show-notes": "show-notes",
-        "find-note": "find-note [query...]",
-        "find-tag": "find-tag [tag...]",
-        "sort-notes": "sort-notes (сортує за тегами)",
-        "delete-note": "delete-note [note_id]",
-    },
-    "Інші": {
-        "hello": "hello (для привітання)",
-        "help": "help (ця довідка)",
-        "exit": "exit / close (вихід та збереження)",
-    },
-}
-
-
-def show_help():
-    """
-    Формує та повертає рядок довідки у вигляді таблиці/дерева.
-    """
-    response = [f"\n{styles.SUCCESS}--- Довідка по Командам ---"]
-    response.append(
-        f"\n  {styles.HIGHLIGHT}{'Команда':<18} {styles.HIGHLIGHT}{'Приклад / Опис'}"
-    )
-    response.append(f"  {'-'*18} {'-'*50}")
-
-    all_commands = []
-    for category, commands in COMMANDS_HELP.items():
-        response.append(f"\n {styles.INFO}{category}:")
-
-        # Збираємо команди для коректного малювання гілок
-        command_items = list(commands.items())
-        for i, (cmd, desc) in enumerate(command_items):
-            is_last = i == len(command_items) - 1
-            branch = L_BRANCH if is_last else T_BRANCH
-
-            line = f"  {branch} {styles.WARNING}{cmd:<18} {styles.PROMPT}- {desc}"
-            response.append(line)
-
-    response.append("\n")
-    return "\n".join(response)
-
-
 # Функція для пошуку контакту
 def get_record(name: str, book: AddressBook) -> Record:
-    """Знаходить запис або кидає KeyError."""
+    """Знаходить запис або кидає KeyError"""
     record = book.find(name)
     if record is None:
-        raise KeyError(f"Контакт {name} не знайдено.") # ❗️ Уточнив помилку
+        raise KeyError(f"Контакт '{name}' не знайдено.")
     return record
 
 
-# -------------------------------------
-# ОБРОБНИКИ ДЛЯ КОНТАКТІВ (Я НЕ ЧІПАВ ЦЕЙ КОД)
-# -------------------------------------
-
+# Обробники для контактів
 @input_error
 def add_contact(args: list, book: AddressBook) -> str:
     """
-    Створює новий контакт з опціональними полями.
+    Створює новий контакт з опціональними полями
     Приймає: -n [name] (опціонально: -p [phone] -e [email] -b [bday] -a [address])
     -n є обов'язковим.
     Адресу вказувати в лапках: -a "123 Main St"
     """
     if not args:
         raise IndexError
-    name = args[0]
-    if book.find(name):
 
-        raise ValueError(f"Контакт '{name}' вже існує.")
+    data = _parse_contact_args(args)
+
+    if not data["name"]:
+        raise ValueError("Ключ '-n' (ім'я) є обов'язковим.")
+
+    if book.find(data["name"]):
+        raise ValueError(f"Контакт '{data['name']}' вже існує.")
 
     record = Record(data["name"])
     messages = []
-    i = 0
-    while i < len(args_data):
-        keyword = args_data[i].lower()
-        try:
-            if keyword == "phone":
-                i += 1
-                record.add_phone(args_data[i])
-                messages.append(f"додано телефон {args_data[i]}")
-            elif keyword == "email":
-                i += 1
-                record.add_email(args_data[i])
-                messages.append(f"додано email {args_data[i]}")
-            elif keyword == "birthday":
-                i += 1
-                record.add_birthday(args_data[i])
-                messages.append(f"додано день народження {args_data[i]}")
-            elif keyword == "address":
-                i += 1
-                address_parts = args_data[i:]
-                if not address_parts:
-                    raise IndexError
-                address = " ".join(address_parts)
-                record.add_address(address)
-                messages.append("додано адресу")
-                break
-            else:
-                raise ValueError(
-                    f"Невідоме ключове слово '{args_data[i]}'. Очікувалось 'phone', 'email', 'birthday' або 'address'."
-                )
-        except IndexError:
-            raise ValueError(f"Не вказано значення для '{keyword}'.")
-        i += 1
+
+    if data["phone"]:
+        record.add_phone(data["phone"])
+        messages.append(f"додано телефон {data['phone']}")
+
+    if data["email"]:
+        record.add_email(data["email"])
+        messages.append(f"додано email {data['email']}")
+
+    if data["birthday"]:
+        record.add_birthday(data["birthday"])
+        messages.append(f"додано день народження {data['birthday']}")
+
+    if data["address"]:
+        record.add_address(data["address"])
+        messages.append(f"додано адресу {data['address']}")
+
     book.add_record(record)
+
     if messages:
         return f"{styles.SUCCESS}Контакт '{record.name.value}' створено ({', '.join(messages)})."
     else:
         return f"{styles.SUCCESS}Контакт '{record.name.value}' успішно створено."
 
+
 @input_error
 def update_contact(args: list, book: AddressBook) -> str:
     """
-    Оновлює поля існуючого контакту (додає телефон, замінює email/bday/address).
+    Оновлює поля існуючого контакту (додає телефон, замінює email/bday/address)
     Приймає: -n [name] (опціонально: -p [phone] -e [email] -b [bday] -a [address])
-    -n є обов'язковим для ідентифікації контакту.
-    -p, -e, -b, -a замінюють існуючі значення.
+    -n є обов'язковим для ідентифікації контакту
+    -p, -e, -b, -a замінюють існуючі значення
     """
     if not args:
         raise IndexError
@@ -234,15 +169,13 @@ def update_contact(args: list, book: AddressBook) -> str:
 
     record = get_record(data["name"], book)
 
-    # --- ЗМІНЕНО: "phones" на "phone" ---
     if not any([data["phone"], data["email"], data["birthday"], data["address"]]):
         raise ValueError("Вкажіть хоча б одне поле для оновлення (-p, -e, -b, -a).")
 
     messages = []
 
-    # --- ЗМІНЕНО: Логіка для одного телефону ---
     if data["phone"]:
-        record.add_phone(data["phone"])  # Просто викликаємо add_phone, який перезапише
+        record.add_phone(data["phone"])
         messages.append(f"оновлено телефон на {data['phone']}")
 
     if data["email"]:
@@ -260,16 +193,20 @@ def update_contact(args: list, book: AddressBook) -> str:
     if messages:
         return f"{styles.SUCCESS}Контакт '{record.name.value}' оновлено ({', '.join(messages)})."
     else:
-        return (
-            f"{styles.WARNING}Для контакту '{record.name.value}' не було надано даних для оновлення."
-        )
+        return f"{styles.WARNING}Для контакту '{record.name.value}' не було надано даних для оновлення."
+
 
 @input_error
 def show_contact(args: list, book: AddressBook) -> str:
-    # (Твій код...)
+    """
+    Показує один контакт у деревовидному форматі
+    Приймає: [name]
+    """
     name = args[0]
     record = get_record(name, book)
+
     response = [f" {styles.HIGHLIGHT}{record.name.value}"]
+
     details = []
     if record.phone:
         details.append(("Phone", [record.phone.value]))
@@ -279,189 +216,150 @@ def show_contact(args: list, book: AddressBook) -> str:
         details.append(("Address", [record.address.value]))
     if record.birthday:
         details.append(("Birthday", [str(record.birthday)]))
+
     if not details:
         response.append(f" {L_BRANCH} {styles.WARNING}No additional details.")
         return "\n".join(response)
+
+    # "дерево" деталей
     for i, (title, items) in enumerate(details):
         is_last_detail = i == len(details) - 1
         branch = L_BRANCH if is_last_detail else T_BRANCH
+
         response.append(f" {branch} {styles.INFO}{title}:")
+
         item_prefix = f" {EMPTY if is_last_detail else V_LINE} "
+
         for j, item in enumerate(items):
             item_branch = L_BRANCH if j == len(items) - 1 else T_BRANCH
             response.append(f" {item_prefix}{item_branch} {item}")
+
+    return "\n".join(response)
+
+
+@input_error
+def show_all(args: list, book: AddressBook) -> str:
+    """
+    Показує всі контакти. 'args' не використовується
+    """
+    if not book.data:
+        return f"{styles.WARNING}Адресна книга порожня."
+
+    response = [f"{styles.SUCCESS}--- Всі Контакти ---"]
+    for record in book.data.values():
+        response.append(str(record))
     return "\n".join(response)
 
 
 @input_error
 def birthdays(args: list, book: AddressBook) -> str:
     """
-    Показує дні народження.
-    Приймає: -n [days] (для вказання кількості днів)
-    Якщо викликано без аргументів, запитує інтерактивно.
+    Показує дні народження на 'N' днів вперед
+    Приймає: [days] (за замовчуванням 7)
+    Новий синтаксис: [days] [-d DD.MM.YYYY]
+    -d: вказує початкову дату, з якої ведеться відлік
     """
-    days_ahead = 7  # За замовчуванням
+    days = 7  # За замовчуванням
+    reference_date = None
 
-    try:
-        if "-n" in args:
-            days_index = args.index("-n") + 1
-            days_ahead = int(args[days_index])
-        elif not args:
-            # Інтерактивний режим, якщо "birthdays" введено без аргументів
-            days_str = input(
-                f"{styles.PROMPT}Введіть кількість днів для прогнозу (Enter - 7, '0' - сьогодні): "
-            )
-            if days_str == "":
-                days_ahead = 7
-            else:
-                days_ahead = int(days_str)
-        else:
-            # Для сумісності, якщо ввели "birthdays 10" (але '-n' - пріоритет)
-            days_ahead = int(args[0])
+    args_list = list(args)
 
-    except (IndexError, ValueError):
-        raise ValueError(
-            f"Невірна кількість днів. Введіть число (напр., '7') або '-n 7'."
-        )
+    if "-d" in args_list:
+        try:
+            idx = args_list.index("-d")
 
-    upcoming = book.get_upcoming_birthdays(days_ahead)
+            if idx + 1 >= len(args_list):
+                raise ValueError("Після прапора '-d' очікується дата.")
+
+            date_str = args_list[idx + 1]
+
+            try:
+                reference_date = datetime.strptime(date_str, "%d.%m.%Y").date()
+            except ValueError:
+                raise ValueError(
+                    f"Невірний формат дати '{date_str}'. Використовуйте DD.MM.YYYY"
+                )
+
+            args_list.pop(idx)  # Видаляє '-d'
+            args_list.pop(idx)  # Видаляє 'date_str'
+
+        except ValueError as e:
+            raise e
+
+    if len(args_list) > 1:
+        raise ValueError(f"Неочікувані аргументи: {' '.join(args_list)}")
+
+    if len(args_list) == 1:
+        try:
+            days = int(args_list[0])
+            if days <= 0:
+                raise ValueError("Кількість днів має бути додатнім числом.")
+        except ValueError:
+            raise ValueError(f"Невірний формат для кількості днів: '{args_list[0]}'")
+
+    upcoming = book.get_upcoming_birthdays(days, reference_date=reference_date)
+
+    if reference_date:
+        start_day_str = f"з {reference_date.strftime('%d.%m.%Y')}"
+    else:
+        start_day_str = "від сьогодні"
 
     if not upcoming:
-        if days_ahead == 0:
-            return f"{styles.INFO}Сьогодні ніхто не святкує день народження."
-        return (
-            f"{styles.INFO}Немає найближчих днів народження протягом {days_ahead} днів."
-        )
+        return f"{styles.INFO}Немає найближчих днів народження протягом {days} днів ({start_day_str})."
 
-    # Форматуємо у вигляді таблиці
-    if days_ahead == 0:
-        header = f"\n{styles.SUCCESS}--- Дні Народження Сьогодні ---"
-    else:
-        header = (
-            f"\n{styles.SUCCESS}--- Дні Народження (наступні {days_ahead} днів) ---"
-        )
-
-    response = [header]
-    # Заголовки таблиці
-    response.append(
-        f" {styles.HIGHLIGHT}{'Ім\'я':<25} {styles.HIGHLIGHT}{'Дата ДН':<12} {styles.HIGHLIGHT}Вітати"
-    )
-    response.append(styles.PROMPT + "-" * 60)  # Розділювач
-
+    response = [
+        f"{styles.SUCCESS}Дні народження протягом {days} днів ({start_day_str}):"
+    ]
     for item in upcoming:
-        name_str = f" {styles.INFO}{item['name']:<25}"
-        date_str = f" {styles.PROMPT}{item['birthday_date']:<12}"
-        congrats_str = f" {styles.WARNING}{item['congratulation_day']}"
-        response.append(name_str + date_str + congrats_str)
+        response.append(
+            f" {T_BRANCH} {styles.HIGHLIGHT}{item['name']} "
+            f"{styles.INFO}({item['birthday_date']}) - Вітати: {item['congratulation_day']}"
+        )
+
+    if response:
+        response[-1] = response[-1].replace(T_BRANCH, L_BRANCH)
 
     return "\n".join(response)
 
 
-# Нотатки
 @input_error
-def add_note(args: list, notes: NoteBook) -> str:
+def find_contact(args: list, book: AddressBook) -> str:
     """
-    Додає нотатку
-    Приймає: [text...]
-    """
-    text = " ".join(args)
-    if not text:
-        raise ValueError("Note text cannot be empty.")
-    note = Note(text)
-    new_id = notes.add_note(note) 
-    return f"{styles.SUCCESS}Нотатку додано (ID: {new_id})"
-
-@input_error
-def find_note(args: list, notes: NoteBook) -> str:
-    """
-    ❗️ НОВА ФУНКЦІЯ (Фікс "подивитися окрему")
-    Показує ОДНУ нотатку за її ID.
-    Приймає: [note_id]
-    """
-    try:
-        note_id = int(args[0])
-    except IndexError:
-        return f"{styles.ERROR}Вкажіть ID нотатки."
-    except ValueError:
-        return f"{styles.ERROR}ID нотатки має бути числом."
-        
-    note = notes.find_by_id(note_id)
-    if note is None:
-        raise KeyError(f"Note with ID '{note_id}' not found.")
-    
-    return f"ID {note_id}: {str(note)}" # Повертаємо одну нотатку
-
-@input_error
-def show_notes(args: list, notes: NoteBook) -> str:
-    """Показує всі нотатки (з їх ID)"""
-    if not notes.data:
-        return f"{styles.WARNING}Книга нотаток порожня."
-
-    response = [f"{styles.SUCCESS}--- Всі Нотатки ---"]
-    for note_id, note in notes.data.items():
-        response.append(f"ID {note_id}: {str(note)}")
-    return "\n".join(response)
-
-@input_error
-def edit_note_handler(args: list, notes: NoteBook) -> str:
-    """
-    ❗️ НОВА ФУНКЦІЯ (Фікс 'редагувати нотатку')
-    Редагує текст нотатки за її ID.
-    Приймає: [note_id] [новий текст...]
-    """
-    try:
-        note_id = int(args[0])
-    except IndexError:
-        return f"{styles.ERROR}Вкажіять ID нотатки та новий текст."
-    except ValueError:
-        return f"{styles.ERROR}ID нотатки має бути числом."
-    
-    new_text = " ".join(args[1:])
-    if not new_text:
-        return f"{styles.ERROR}Вкажіть новий текст для нотатки."
-    
-    notes.edit_note(note_id, new_text) # Метод з models.py
-    return f"{styles.SUCCESS}Нотатку {note_id} оновлено."
-
-@input_error
-def delete_note(args: list, notes: NoteBook) -> str:
-    """
-    Видаляє нотатку за ID
-    Приймає: [note_id]
-    """
-    try:
-        note_id = int(args[0])
-    except IndexError:
-        return f"{styles.ERROR}Вкажіть ID нотатки для видалення."
-    except ValueError:
-        return f"{styles.ERROR}ID нотатки має бути числом."
-        
-    notes.delete_note(note_id)
-    return f"{styles.SUCCESS}Нотатку {note_id} видалено."
-
-@input_error
-def search_notes_handler(args: list, notes: NoteBook) -> str:
-    """
-    ❗️ ПЕРЕЙМЕНОВАНО (раніше була 'find_note')
-    Пошук нотаток за текстом
+    Пошук контактів за текстом
     Приймає: [query...]
     """
     query = " ".join(args)
     if not query:
-        return f"{styles.ERROR}Вкажіть текст для пошуку."
-        
-    found = notes.search_by_text(query)
+        raise ValueError("Введіть пошуковий запит.")
+
+    found = book.search(query)
 
     if not found:
-        return f"{styles.WARNING}Не знайдено нотаток, що містять '{query}'."
+        return (
+            f"{styles.WARNING}Не знайдено контактів, що відповідають запиту '{query}'."
+        )
 
-    response = [f"{styles.SUCCESS}Нотатки, що відповідають запиту '{query}':"]
-    # ❗️ Виправлено: 'str(note)' вже має 'ID' з 'NoteBook'
-    for note in found:
-        response.append(f"ID {note.id}: {str(note)}") 
+    response = [f"{styles.SUCCESS}Контакти, що відповідають запиту '{query}':"]
+    for record in found:
+        response.append(str(record))
     return "\n".join(response)
 
-# --- (Обробники для Тегів) ---
+
+# --- НОТАТКИ ---
+@input_error
+def add_note(args: list, notes: NoteBook) -> str:
+    """
+    Додає нотатку
+    Приймає: [text...] (текст нотатки)
+    """
+    text = " ".join(args)
+    if not text:
+        raise ValueError("Текст нотатки не може бути порожнім.")
+
+    note = Note(text)
+    new_id = notes.add_note(note)
+    return f"{styles.SUCCESS}Нотатку додано (ID: {new_id})"
+
 
 @input_error
 def add_tag(args: list, notes: NoteBook) -> str:
@@ -469,42 +367,60 @@ def add_tag(args: list, notes: NoteBook) -> str:
     Додає теги до нотатки
     Приймає: [note_id] [tag1] [tag2] ...
     """
-    try:
-        note_id = int(args[0])
-        tags = args[1:]
-    except ValueError:
-        return f"{styles.ERROR}ID нотатки має бути числом."
-    except IndexError:
-        raise ValueError("Вкажіть ID нотатки та хоча б один тег.")
-        
+    if len(args) < 2:
+        raise ValueError("Потрібно вказати ID нотатки та хоча б один тег.")
+
+    note_id, *tags = args
     if not tags:
-        raise ValueError("Вкажіть хоча б один тег.")
+        raise ValueError("Введіть хоча б один тег.")
 
-    note = notes.find_by_id(note_id) 
+    note = notes.find_by_id(note_id)
     if note is None:
-        raise KeyError(f"Note with ID '{note_id}' not found.")
+        raise KeyError(f"Нотатку з ID '{note_id}' не знайдено")
 
-    added_tags = []
     for tag in tags:
-        if note.add_tag(tag): # add_tag повертає True, якщо тег новий
-            added_tags.append(tag)
-            
-    if not added_tags:
-         return f"{styles.WARNING}Теги вже існують для нотатки {note_id}."
-         
-    return f"{styles.SUCCESS}Теги {added_tags} додано до нотатки {note_id}."
+        note.add_tag(tag)
+    return f"{styles.SUCCESS}Теги {tags} додано до нотатки {note_id}."
+
 
 @input_error
-def search_by_tag(args: list, notes: NoteBook) -> str:
+def show_notes(args: list, notes: NoteBook) -> str:
+    """Показує всі нотатки"""
+    if not notes.data:
+        return f"{styles.WARNING}Книга нотаток порожня."
+
+    response = [f"{styles.SUCCESS}--- Всі Нотатки ---"]
+    # Сортуємо за ID (int) перед виводом
+    for note_id in sorted(notes.data.keys()):
+        response.append(str(notes.data[note_id]))
+    return "\n".join(response)
+
+
+@input_error
+def find_note(args: list, notes: NoteBook) -> str:
     """
-    ❗️ ПЕРЕЙМЕНОВАНО (раніше була 'find_tag')
+    Пошук нотаток за текстом
+    Приймає: [query...]
+    """
+    query = " ".join(args)
+    found = notes.search_by_text(query)
+
+    if not found:
+        return f"{styles.WARNING}Не знайдено нотаток, що містять '{query}'."
+
+    response = [f"{styles.SUCCESS}Нотатки, що відповідають запиту '{query}':"]
+    for note in found:
+        response.append(str(note))
+    return "\n".join(response)
+
+
+@input_error
+def find_tag(args: list, notes: NoteBook) -> str:
+    """
     Пошук нотаток за тегом
     Приймає: [tag_query]
     """
     tag_query = " ".join(args)
-    if not tag_query:
-        return f"{styles.ERROR}Вкажіть тег для пошуку."
-        
     found = notes.search_by_tag(tag_query)
 
     if not found:
@@ -512,7 +428,7 @@ def search_by_tag(args: list, notes: NoteBook) -> str:
 
     response = [f"{styles.SUCCESS}Нотатки з тегом '{tag_query}':"]
     for note in found:
-        response.append(f"ID {note.id}: {str(note)}")
+        response.append(str(note))
     return "\n".join(response)
 
 
@@ -522,16 +438,42 @@ def delete_note(args: list, notes: NoteBook) -> str:
     Видаляє нотатку за ID
     Приймає: [note_id]
     """
+    if not args:
+        raise IndexError
     note_id = args[0]
-
-    notes.delete_note(note_id)
+    notes.delete_note(note_id)  # Метод в NoteBook обробить помилку
     return f"{styles.SUCCESS}Нотатку {note_id} видалено."
+
+
+@input_error
+def update_note(args: list, notes: NoteBook) -> str:
+    """
+    Оновлює текст існуючої нотатки.
+    Приймає: [note_id] [новий текст...]
+    """
+    if len(args) < 2:
+        raise ValueError("Вкажіть ID нотатки та новий текст.")
+
+    note_id = args[0]
+    new_text = " ".join(args[1:])
+
+    if not new_text:
+        # Це дублює перевірку в `note.update_text`, але краще перевірити тут
+        raise ValueError("Новий текст нотатки не може бути порожнім.")
+
+    note = notes.find_by_id(note_id)
+    if note is None:
+        raise KeyError(f"Нотатку з ID '{note_id}' не знайдено.")
+
+    note.update_text(new_text)
+    return f"{styles.SUCCESS}Текст нотатки {note_id} оновлено."
 
 
 @input_error
 def sort_notes_by_tags(args: list, notes: NoteBook) -> str:
     """
-    Сортує та виводить нотатки за тегами
+    Сортує та виводить нотатки за тегами (за алфавітом першого тега)
+    'args' не використовується
     """
     sorted_notes = notes.sort_by_tags()
 
@@ -540,27 +482,87 @@ def sort_notes_by_tags(args: list, notes: NoteBook) -> str:
 
     response = [f"{styles.SUCCESS}--- Нотатки, відсортовані за тегами ---"]
     for note in sorted_notes:
-        response.append(f"ID {note.id}: {str(note)}")
+        response.append(str(note))
     return "\n".join(response)
 
-# ❗️ ОБОВ'ЯЗКОВО! Обробник для 'all'
-@input_error
-def show_all(book: AddressBook, notes: NoteBook) -> str:
+
+# --- HELP ---
+
+
+def show_help(args: list) -> str:
     """
-    Показує всі контакти ТА всі нотатки.
+    Виводить детальну довідку по всім командам
+    'args' не використовується
     """
-    response = [f"{styles.SUCCESS}--- Всі Контакти ---"]
-    if not book.data:
-        response.append(f"{styles.WARNING}Адресна книга порожня.")
-    else:
-        for record in book.data.values():
-            response.append(str(record))
-    
-    response.append(f"\n{styles.SUCCESS}--- Всі Нотатки ---")
-    if not notes.data:
-        response.append(f"{styles.WARNING}Книга нотаток порожня.")
-    else:
-        for note_id, note in notes.data.items():
-            response.append(f"ID {note_id}: {str(note)}")
-            
-    return "\n".join(response)
+    H = styles.HIGHLIGHT  # Заголовок команди
+    C = styles.INFO  # Коментар/Аргументи
+    E = styles.SUCCESS  # Приклад
+    G = styles.WARNING  # Загальний заголовок
+
+    help_text = [
+        f"{G}--- Загальні Команди ---",
+        f"  {H}hello{C}: Вітання.",
+        f"  {H}help{C}: Ця довідка.",
+        f"  {H}exit{C} (або {H}close{C}): Зберегти дані та вийти.",
+        "",
+        f"{G}--- Робота з Контактами ---",
+        f"  {H}add-contact {C}-n [Ім'я] [Опції...]",
+        f"    {C}Створює новий контакт. {styles.ERROR}-n є обов'язковим.{C}",
+        f"    {C}Опції: {H}-p [телефон] -e [email] -b [DD.MM.YYYY] -a [адреса]",
+        f'    {E}Приклад: add-contact -n "John Doe" -p 1234567890 -e john@g.com',
+        "",
+        f"  {H}update-contact {C}-n [Ім'я] [Опції...]",
+        f"    {C}Оновлює існуючий контакт (замінює поля). {styles.ERROR}-n є обов'язковим.{C}",
+        f"    {C}Опції: {H}-p [телефон] -e [email] -b [DD.MM.YYYY] -a [адреса]",
+        f'    {E}Приклад: update-contact -n "John Doe" -p 0987654321',
+        "",
+        f"  {H}show-contact {C}[Ім'я]",
+        f"    {C}Показує детальну інформацію про один контакт.",
+        f'    {E}Приклад: show-contact "John Doe"',
+        "",
+        f"  {H}show-all",
+        f"    {C}Показує список всіх контактів.",
+        "",
+        f"  {H}find-contact {C}[Запит]",
+        f"    {C}Шукає контакти за збігом в імені, телефоні, email тощо.",
+        f"    {E}Приклад: find-contact John",
+        "",
+        f"  {H}birthdays {C}[N] [-d DD.MM.YYYY]",
+        f"    {C}Показує дні народження протягом {H}N{C} днів (за замовч. 7).",
+        f"    {C}Якщо вказано {H}-d{C}, відлік починається з вказаної дати.",
+        f"    {E}Приклад 1: birthdays 10",
+        f"    {E}Приклад 2: birthdays -d 01.01.2025",
+        f"    {E}Приклад 3: birthdays 15 -d 01.01.2025",
+        "",
+        f"{G}--- Робота з Нотатками ---",
+        f"  {H}add-note {C}[Текст нотатки...]",
+        f"    {C}Додає нову нотатку.",
+        f'    {E}Приклад: add-note "Це моя перша нотатка"',
+        "",
+        f"  {H}update-note {C}[ID] [Новий текст...]",
+        f"    {C}Оновлює текст нотатки за її ID.",
+        f"    {E}Приклад: update-note 12 \"Це оновлений текст.\"",
+        "",
+        f"  {H}show-notes",
+        f"    {C}Показує список всіх нотаток (відсортованих за ID).",
+        "",
+        f"  {H}delete-note {C}[ID нотатки]",
+        f"    {C}Видаляє нотатку за її числовим ID.",
+        f"    {E}Приклад: delete-note 12",
+        "",
+        f"  {H}add-tag {C}[ID нотатки] [Тег1] [Тег2]...",
+        f"    {C}Додає один або декілька тегів до нотатки.",
+        f"    {E}Приклад: add-tag 12 work python",
+        "",
+        f"  {H}find-note {C}[Запит...]",
+        f"    {C}Шукає нотатки, в тексті яких є збіг.",
+        f"    {E}Приклад: find-note перша",
+        "",
+        f"  {H}find-tag {C}[Запит тега]",
+        f"    {C}Шукає нотатки, що мають тег, який містить запит.",
+        f"    {E}Приклад: find-tag work",
+        "",
+        f"  {H}sort-notes",
+        f"    {C}Сортує нотатки за алфавітом (на основі першого тега).",
+    ]
+    return "\n".join(help_text)
