@@ -4,14 +4,23 @@
 import difflib
 from assistant.models import AddressBook, NoteBook
 from assistant.storage import load_data, save_data
-from assistant import handlers 
-from assistant import styles 
+from assistant import handlers
+from assistant import styles
+import shlex
+
 
 def parse_input(user_input: str) -> tuple:
     """
     Парсить введений рядок на команду та аргументи
+    Використовує shlex.split для коректної обробки лапок.
     """
-    parts = user_input.split()
+    try:
+        parts = shlex.split(user_input)
+    except ValueError as e:
+        # Ця обробка потрібна, якщо користувач не закрив лапки
+        print(f"{styles.ERROR}Помилка парсингу: {e} (можливо, незакриті лапки?)")
+        return None, []
+
     if not parts:
         return None, []
     cmd = parts[0].strip().lower()
@@ -50,11 +59,18 @@ def main():
         "add-tag": handlers.add_tag,
         "search-by-tag": handlers.search_by_tag,
         "sort-notes": handlers.sort_notes_by_tags,
+        "delete-note": handlers.delete_note,
+        "help": handlers.show_help,  # <--- ДОДАНО: Додано 'help'
     }
 
     # Списки для "диспетчера"
     CONTACT_COMMANDS = [
-        "add-contact", "update-contact", "show-contact", "birthdays",
+        "add-contact",
+        "update-contact",
+        "show-contact",
+        "show-all",
+        "birthdays",
+        "find-contact",
     ]
 
     NOTE_COMMANDS = [
@@ -93,7 +109,9 @@ def main():
                 if command in CONTACT_COMMANDS:
                     result = handler(args, book) # Передаємо 'book'
                 elif command in NOTE_COMMANDS:
-                    result = handler(args, notes) # Передаємо 'notes'
+                    result = handler(args, notes)
+                elif command in OTHER_COMMANDS:
+                    result = handler()
                 else:
                     result = f"{styles.ERROR}Помилка диспетчера."
 

@@ -31,7 +31,7 @@ class Name(Field):
     @Field.value.setter
     def value(self, new_value):
         if not new_value:
-            raise ValueError("Name cannot be empty.")
+            raise ValueError("Ім'я не може бути порожнім.")
         self._value = new_value
 
 class Phone(Field):
@@ -39,7 +39,7 @@ class Phone(Field):
     @Field.value.setter
     def value(self, new_value):
         if not (len(new_value) == 10 and new_value.isdigit()):
-            raise ValueError("Invalid phone number: must be 10 digits.")
+            raise ValueError("Невірний номер телефону: має бути 10 цифр.")
         self._value = new_value
 
 class Birthday(Field):
@@ -51,6 +51,8 @@ class Birthday(Field):
             self._value = parsed_date
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise ValueError("Невірний формат дати. Використовуйте DD.MM.YYYY")
+
     def __str__(self):
         return self._value.strftime("%d.%m.%Y")
 
@@ -59,7 +61,7 @@ class Email(Field):
     @Field.value.setter
     def value(self, new_value: str):
         if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", new_value):
-            raise ValueError("Invalid email format.")
+            raise ValueError("Невірний формат email.")
         self._value = new_value
 
 class Address(Field):
@@ -72,7 +74,7 @@ class Record:
     """
     def __init__(self, name: str):
         self.name = Name(name)
-        self.phones = []
+        self.phone = None
         self.email = None
         self.address = None
         self.birthday = None
@@ -84,13 +86,17 @@ class Record:
         if phone_to_remove:
             self.phones.remove(phone_to_remove)
         else:
-            raise ValueError(f"Phone number {phone_number} not found.")
+
+            raise ValueError(f"Номер телефону {phone_number} не знайдено.")
+
     def edit_phone(self, old_phone_number: str, new_phone_number: str):
         phone_to_edit = self.find_phone(old_phone_number)
         if phone_to_edit:
             phone_to_edit.value = new_phone_number
         else:
-            raise ValueError(f"Phone number {old_phone_number} not found.")
+
+            raise ValueError(f"Номер телефону {old_phone_number} не знайдено.")
+
     def find_phone(self, phone_number: str):
         for phone in self.phones:
             if phone.value == phone_number:
@@ -103,14 +109,26 @@ class Record:
     def add_address(self, address_str: str):
         self.address = Address(address_str)
     def __str__(self):
-        phone_list = "; ".join(p.value for p in self.phones)
-        birthday_str = f", birthday: {self.birthday}" if self.birthday else ""
-        email_str = f", email: {self.email}" if self.email else ""
-        address_str = f", address: {self.address}" if self.address else ""
-        return (
-            f"Contact name: {self.name.value}, "
-            f"phones: {phone_list}{email_str}{address_str}{birthday_str}"
-        )
+        # Створюємо список частин, які НЕ порожні
+        parts = []
+        if self.phone:
+            parts.append(f"phone: {self.phone}")
+        if self.email:
+            parts.append(f"email: {self.email}")
+        if self.address:
+            parts.append(f"address: {self.address}")
+        if self.birthday:
+            parts.append(f"birthday: {self.birthday}")
+
+        # З'єднуємо їх через кому
+        data_str = ", ".join(parts)
+
+        # Якщо data_str порожній, виводимо "No data"
+        if not data_str:
+            data_str = "Немає додаткових даних."
+
+        # Повертаємо чистий, відформатований рядок
+        return f"Контакт: {self.name.value} [{data_str}]"
 
 class AddressBook(UserDict):
     """Клас для управління адресною книгою"""
@@ -122,7 +140,8 @@ class AddressBook(UserDict):
         if name in self.data:
             del self.data[name]
         else:
-            raise KeyError(f"Contact '{name}' not found.")
+            raise KeyError(f"Контакт '{name}' не знайдено.")
+
     def get_upcoming_birthdays(self, days: int) -> list:
         # ... (твій код 'get_upcoming_birthdays') ...
         today = date.today()
@@ -135,12 +154,26 @@ class AddressBook(UserDict):
             if bday_this_year < today:
                 bday_this_year = bday.replace(year=today.year + 1)
             delta_days = (bday_this_year - today).days
-            if 0 <= delta_days < days:
+
+            if 0 <= delta_days <= days:
                 weekday = bday_this_year.weekday()
-                if weekday >= 5:
-                    day_to_congratulate = bday_this_year.strftime("%A (%A in fact)")
+
+                # Логіка перенесення з вихідних
+                if weekday == 5:  # Субота
+                    day_to_congratulate = "Monday"
+                elif weekday == 6:  # Неділя
+                    day_to_congratulate = "Monday"
                 else:
-                    day_to_congratulate = bday_this_year.strftime("%A")
+                    day_to_congratulate = bday_this_year.strftime(
+                        "%A"
+                    )  # Напр. "Tuesday"
+
+                # Якщо ДН сьогодні (delta_days == 0), то вітаємо сьогодні
+                if delta_days == 0:
+                    day_to_congratulate = (
+                        "Today (" + bday_this_year.strftime("%A") + ")"
+                    )
+
                 upcoming_birthdays.append(
                     {
                         "name": record.name.value,
@@ -259,7 +292,7 @@ class NoteBook(UserDict):
         if note_id in self.data:
             del self.data[note_id]
         else:
-            raise KeyError(f"Note with ID '{note_id}' not found.")
+            raise KeyError(f"Нотатку з ID '{note_id}' не знайдено.")
 
     # ❗️ ФІКС (Вимога 7: Пошук за текстом)
     def search_by_text(self, query: str) -> list:
