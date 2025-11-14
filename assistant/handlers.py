@@ -66,6 +66,8 @@ def _parse_contact_args(args: list) -> dict:
     return parsed_data
 
 # Декоратор для обробки помилок
+
+
 def input_error(func):
     """
     Декоратор, який обробляє помилки вводу
@@ -76,17 +78,74 @@ def input_error(func):
         try:
             return func(*args, **kwargs)
         except ValueError as e:
-            return f"{styles.ERROR}ValueError: {e}"
+            return f"{styles.ERROR}{e}"  # Виводимо тільки текст помилки
         except KeyError as e:
-            return f"{styles.ERROR}KeyError: Контакт {e} не знайдено."
+            return f"{styles.ERROR}Не знайдено: {e}"  # Більш загальне повідомлення
         except AttributeError:
-            return f"{styles.ERROR}AttributeError: Контакт не знайдено або невірний атрибут."
+            return f"{styles.ERROR}Контакт не знайдено або невірний атрибут."
         except IndexError:
-            return f"{styles.WARNING}Недостатньо аргументів."
+            return (
+                f"{styles.WARNING}Недостатньо аргументів. Введіть 'help' для довідки."
+            )
         except Exception as e:
             return f"{styles.ERROR}Сталася непередбачена помилка: {e}"
 
     return inner
+
+
+# --- ДОДАНО: Нова функція 'help' ---
+
+# Словник для help, який легко редагувати
+COMMANDS_HELP = {
+    "Контакти": {
+        "add-contact": "add-contact [name] phone [phone] email [email]...",
+        "update-contact": "update-contact [name] phone [phone]...",
+        "show-contact": "show-contact [name]",
+        "show-all": "show-all",
+        "birthdays": "birthdays (або -n [days])",
+    },
+    "Нотатки": {
+        "add-note": "add-note [text...]",
+        "add-tag": "add-tag [note_id] [tag...]",
+        "show-notes": "show-notes",
+        "find-note": "find-note [query...]",
+        "find-tag": "find-tag [tag...]",
+        "sort-notes": "sort-notes (сортує за тегами)",
+        "delete-note": "delete-note [note_id]",
+    },
+    "Інші": {
+        "hello": "hello (для привітання)",
+        "help": "help (ця довідка)",
+        "exit": "exit / close (вихід та збереження)",
+    },
+}
+
+
+def show_help():
+    """
+    Формує та повертає рядок довідки у вигляді таблиці/дерева.
+    """
+    response = [f"\n{styles.SUCCESS}--- Довідка по Командам ---"]
+    response.append(
+        f"\n  {styles.HIGHLIGHT}{'Команда':<18} {styles.HIGHLIGHT}{'Приклад / Опис'}"
+    )
+    response.append(f"  {'-'*18} {'-'*50}")
+
+    all_commands = []
+    for category, commands in COMMANDS_HELP.items():
+        response.append(f"\n {styles.INFO}{category}:")
+
+        # Збираємо команди для коректного малювання гілок
+        command_items = list(commands.items())
+        for i, (cmd, desc) in enumerate(command_items):
+            is_last = i == len(command_items) - 1
+            branch = L_BRANCH if is_last else T_BRANCH
+
+            line = f"  {branch} {styles.WARNING}{cmd:<18} {styles.PROMPT}- {desc}"
+            response.append(line)
+
+    response.append("\n")
+    return "\n".join(response)
 
 
 # Функція для пошуку контакту
@@ -94,7 +153,8 @@ def get_record(name: str, book: AddressBook) -> Record:
     """Знаходить запис або кидає KeyError."""
     record = book.find(name)
     if record is None:
-        raise KeyError(name)
+
+        raise KeyError(f"Контакт '{name}'")
     return record
 
 
@@ -109,14 +169,11 @@ def add_contact(args: list, book: AddressBook) -> str:
     """
     if not args:
         raise IndexError
-    
-    data = _parse_contact_args(args)
 
-    if not data["name"]:
-        raise ValueError("Ключ '-n' (ім'я) є обов'язковим.")
+    name = args[0]
+    if book.find(name):
 
-    if book.find(data["name"]):
-        raise ValueError(f"Контакт '{data['name']}' вже існує.")
+        raise ValueError(f"Контакт '{name}' вже існує.")
 
     record = Record(data["name"])
     messages = []
@@ -250,26 +307,63 @@ def show_all(args: list, book: AddressBook) -> str:
 @input_error
 def birthdays(args: list, book: AddressBook) -> str:
     """
-    Показує дні народження на 'N' днів вперед.
-    Приймає: [days] (за замовчуванням 7)
+    Показує дні народження.
+    Приймає: -n [days] (для вказання кількості днів)
+    Якщо викликано без аргументів, запитує інтерактивно.
     """
-    days = int(args[0]) if args else 7  # За замовчуванням 7 днів
+    days_ahead = 7  # За замовчуванням
 
-    upcoming = book.get_upcoming_birthdays(days)
+    try:
+        if "-n" in args:
+            days_index = args.index("-n") + 1
+            days_ahead = int(args[days_index])
+        elif not args:
+            # Інтерактивний режим, якщо "birthdays" введено без аргументів
+            days_str = input(
+                f"{styles.PROMPT}Введіть кількість днів для прогнозу (Enter - 7, '0' - сьогодні): "
+            )
+            if days_str == "":
+                days_ahead = 7
+            else:
+                days_ahead = int(days_str)
+        else:
+            # Для сумісності, якщо ввели "birthdays 10" (але '-n' - пріоритет)
+            days_ahead = int(args[0])
 
-    if not upcoming:
-        return f"{styles.INFO}Немає найближчих днів народження протягом {days} днів."
-
-    response = [f"{styles.SUCCESS}Дні народження протягом наступних {days} днів:"]
-    for item in upcoming:
-        response.append(
-            f" {T_BRANCH} {styles.HIGHLIGHT}{item['name']} "
-            f"{styles.INFO}({item['birthday_date']}) - Вітати: {item['congratulation_day']}"
+    except (IndexError, ValueError):
+        raise ValueError(
+            f"Невірна кількість днів. Введіть число (напр., '7') або '-n 7'."
         )
 
-    # Виправляємо останню гілку
-    if response:
-        response[-1] = response[-1].replace(T_BRANCH, L_BRANCH)
+    upcoming = book.get_upcoming_birthdays(days_ahead)
+
+    if not upcoming:
+        if days_ahead == 0:
+            return f"{styles.INFO}Сьогодні ніхто не святкує день народження."
+        return (
+            f"{styles.INFO}Немає найближчих днів народження протягом {days_ahead} днів."
+        )
+
+    # Форматуємо у вигляді таблиці
+    if days_ahead == 0:
+        header = f"\n{styles.SUCCESS}--- Дні Народження Сьогодні ---"
+    else:
+        header = (
+            f"\n{styles.SUCCESS}--- Дні Народження (наступні {days_ahead} днів) ---"
+        )
+
+    response = [header]
+    # Заголовки таблиці
+    response.append(
+        f" {styles.HIGHLIGHT}{'Ім\'я':<25} {styles.HIGHLIGHT}{'Дата ДН':<12} {styles.HIGHLIGHT}Вітати"
+    )
+    response.append(styles.PROMPT + "-" * 60)  # Розділювач
+
+    for item in upcoming:
+        name_str = f" {styles.INFO}{item['name']:<25}"
+        date_str = f" {styles.PROMPT}{item['birthday_date']:<12}"
+        congrats_str = f" {styles.WARNING}{item['congratulation_day']}"
+        response.append(name_str + date_str + congrats_str)
 
     return "\n".join(response)
 
@@ -304,7 +398,7 @@ def add_note(args: list, notes: NoteBook) -> str:
     """
     text = " ".join(args)
     if not text:
-        raise ValueError("Текст нотатки не може бути порожнім.")
+        raise ValueError("Note text cannot be empty.")
 
     note = Note(text)
     notes.add_note(note)
@@ -319,11 +413,11 @@ def add_tag(args: list, notes: NoteBook) -> str:
     """
     note_id, *tags = args
     if not tags:
-        raise ValueError("Введіть хоча б один тег.")
+        raise ValueError("Please provide at least one tag.")
 
     note = notes.find_by_id(note_id)
     if note is None:
-        raise KeyError(f"Нотатку з ID '{note_id}' не знайдено")
+        raise KeyError(f"Note with ID '{note_id}'")
 
     for tag in tags:
         note.add_tag(tag)
@@ -385,6 +479,7 @@ def delete_note(args: list, notes: NoteBook) -> str:
     Приймає: [note_id]
     """
     note_id = args[0]
+
     notes.delete_note(note_id)
     return f"{styles.SUCCESS}Нотатку {note_id} видалено."
 

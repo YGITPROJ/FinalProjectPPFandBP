@@ -92,7 +92,29 @@ class Record:
         self.birthday = None
 
     def add_phone(self, phone_number: str):
-        self.phone = Phone(phone_number)
+        self.phones.append(Phone(phone_number))
+
+    def remove_phone(self, phone_number: str):
+        phone_to_remove = self.find_phone(phone_number)
+        if phone_to_remove:
+            self.phones.remove(phone_to_remove)
+        else:
+
+            raise ValueError(f"Номер телефону {phone_number} не знайдено.")
+
+    def edit_phone(self, old_phone_number: str, new_phone_number: str):
+        phone_to_edit = self.find_phone(old_phone_number)
+        if phone_to_edit:
+            phone_to_edit.value = new_phone_number
+        else:
+
+            raise ValueError(f"Номер телефону {old_phone_number} не знайдено.")
+
+    def find_phone(self, phone_number: str):
+        for phone in self.phones:
+            if phone.value == phone_number:
+                return phone
+        return None
 
     def add_birthday(self, birthday_str: str):
         self.birthday = Birthday(birthday_str)
@@ -160,15 +182,24 @@ class AddressBook(UserDict):
 
             delta_days = (bday_this_year - today).days
 
-            # Перевіряємо, чи день народження в межах заданого 'days'
-            if 0 <= delta_days < days:
+            if 0 <= delta_days <= days:
                 weekday = bday_this_year.weekday()
 
-                if weekday >= 5:
-                    # Переносимо на понеділок
-                    day_to_congratulate = bday_this_year.strftime("%A (%A in fact)")
+                # Логіка перенесення з вихідних
+                if weekday == 5:  # Субота
+                    day_to_congratulate = "Monday"
+                elif weekday == 6:  # Неділя
+                    day_to_congratulate = "Monday"
                 else:
-                    day_to_congratulate = bday_this_year.strftime("%A")
+                    day_to_congratulate = bday_this_year.strftime(
+                        "%A"
+                    )  # Напр. "Tuesday"
+
+                # Якщо ДН сьогодні (delta_days == 0), то вітаємо сьогодні
+                if delta_days == 0:
+                    day_to_congratulate = (
+                        "Today (" + bday_this_year.strftime("%A") + ")"
+                    )
 
                 upcoming_birthdays.append(
                     {
