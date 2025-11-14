@@ -11,6 +11,59 @@ L_BRANCH = "└──"
 V_LINE = "│  "
 EMPTY = "   "
 
+# --- NEW HELPER FUNCTION ---
+def _parse_contact_args(args: list) -> dict:
+    """
+    Парсить список аргументів з ключами (-n, -p, -e, -b, -a) у словник.
+    """
+    parsed_data = {
+        "name": None,
+        "phone": None,
+        "email": None,
+        "birthday": None,
+        "address": None,
+    }
+    i = 0
+    while i < len(args):
+        key = args[i]
+
+        # Перевірка, чи є значення після ключа
+        if i + 1 >= len(args):
+            raise ValueError(f"Відсутнє значення для ключа '{key}'")
+
+        value = args[i + 1]
+
+        if key == "-n":
+            if parsed_data["name"]:
+                raise ValueError("Ключ '-n' (ім'я) може бути вказано лише один раз.")
+            parsed_data["name"] = value
+
+        elif key == "-p":
+            if parsed_data["phone"]:
+                raise ValueError("Ключ '-p' (phone) може бути вказано лише один раз.")
+            parsed_data["phone"] = value
+
+        elif key == "-e":
+            if parsed_data["email"]:
+                raise ValueError("Ключ '-e' (email) може бути вказано лише один раз.")
+            parsed_data["email"] = value
+
+        elif key == "-b":
+            if parsed_data["birthday"]:
+                raise ValueError("Ключ '-b' (birthday) може бути вказано лише один раз.")
+            parsed_data["birthday"] = value
+
+        elif key == "-a":
+            if parsed_data["address"]:
+                raise ValueError("Ключ '-a' (address) може бути вказано лише один раз.")
+            parsed_data["address"] = value
+
+        else:
+            raise ValueError(f"Невідомий ключ '{key}'. Дозволені: -n, -p, -e, -b, -a.")
+
+        i += 2  # Перестрибуємо через ключ та його значення
+
+    return parsed_data
 
 # Декоратор для обробки помилок
 def input_error(func):
@@ -31,7 +84,7 @@ def input_error(func):
         except IndexError:
             return f"{styles.WARNING}Недостатньо аргументів."
         except Exception as e:
-            return f"{styles.ERROR}An unexpected error occurred: {e}"
+            return f"{styles.ERROR}Сталася непередбачена помилка: {e}"
 
     return inner
 
@@ -50,137 +103,94 @@ def get_record(name: str, book: AddressBook) -> Record:
 def add_contact(args: list, book: AddressBook) -> str:
     """
     Створює новий контакт з опціональними полями.
-    Приймає: [name] (опціонально: phone [phone] email [email] birthday [bday] address [addr...])
-    'address' має бути останнім параметром, оскільки він зчитує всі наступні слова
+    Приймає: -n [name] (опціонально: -p [phone] -e [email] -b [bday] -a [address])
+    -n є обов'язковим.
+    Адресу вказувати в лапках: -a "123 Main St"
     """
     if not args:
         raise IndexError
+    
+    data = _parse_contact_args(args)
 
-    name = args[0]
-    if book.find(name):
-        raise ValueError(f"Contact '{name}' already exists.")
+    if not data["name"]:
+        raise ValueError("Ключ '-n' (ім'я) є обов'язковим.")
 
-    record = Record(name)
+    if book.find(data["name"]):
+        raise ValueError(f"Контакт '{data['name']}' вже існує.")
 
-    # Парсимо решту аргументів
-    args_data = args[1:]
+    record = Record(data["name"])
     messages = []
 
-    i = 0
-    while i < len(args_data):
-        keyword = args_data[i].lower()
+    if data["phone"]:
+        record.add_phone(data["phone"])
+        messages.append(f"додано телефон {data['phone']}")
 
-        try:
-            if keyword == "phone":
-                i += 1
-                record.add_phone(args_data[i])
-                messages.append(f"додано телефон {args_data[i]}")
+    if data["email"]:
+        record.add_email(data["email"])
+        messages.append(f"додано email {data['email']}")
 
-            elif keyword == "email":
-                i += 1
-                record.add_email(args_data[i])
-                messages.append(f"додано email {args_data[i]}")
+    if data["birthday"]:
+        record.add_birthday(data["birthday"])
+        messages.append(f"додано день народження {data['birthday']}")
 
-            elif keyword == "birthday":
-                i += 1
-                record.add_birthday(args_data[i])
-                messages.append(f"додано день народження {args_data[i]}")
-
-            elif keyword == "address":
-                i += 1
-                address_parts = args_data[i:]
-                if not address_parts:
-                    raise IndexError
-
-                address = " ".join(address_parts)
-                record.add_address(address)
-                messages.append("додано адресу")
-                break
-
-            else:
-                raise ValueError(
-                    f"Невідоме ключове слово '{args_data[i]}'. Очікувалось 'phone', 'email', 'birthday' або 'address'."
-                )
-
-        except IndexError:
-            raise ValueError(f"Не вказано значення для '{keyword}'.")
-
-        i += 1
+    if data["address"]:
+        record.add_address(data["address"])
+        messages.append(f"додано адресу {data['address']}")
 
     book.add_record(record)
 
     if messages:
-        return f"{styles.SUCCESS}Контакт '{name}' створено ({', '.join(messages)})."
+        return f"{styles.SUCCESS}Контакт '{record.name.value}' створено ({', '.join(messages)})."
     else:
-        return f"{styles.SUCCESS}Контакт '{name}' успішно створено."
-
+        return f"{styles.SUCCESS}Контакт '{record.name.value}' успішно створено."
 
 @input_error
 def update_contact(args: list, book: AddressBook) -> str:
     """
     Оновлює поля існуючого контакту (додає телефон, замінює email/bday/address).
-    Приймає: [name] phone [phone] email [email] birthday [bday] address [addr...]
-    'address' має бути останнім параметром
+    Приймає: -n [name] (опціонально: -p [phone] -e [email] -b [bday] -a [address])
+    -n є обов'язковим для ідентифікації контакту.
+    -p, -e, -b, -a замінюють існуючі значення.
     """
     if not args:
         raise IndexError
 
-    name = args[0]
-    record = get_record(name, book)
+    data = _parse_contact_args(args)
 
-    args_data = args[1:]
-    if not args_data:
-        raise ValueError("Вкажіть хоча б одне поле для оновлення (phone, email, etc.).")
+    if not data["name"]:
+        raise ValueError("Ключ '-n' (ім'я) є обов'язковим для ідентифікації контакту.")
+
+    record = get_record(data["name"], book)
+
+    # --- ЗМІНЕНО: "phones" на "phone" ---
+    if not any([data["phone"], data["email"], data["birthday"], data["address"]]):
+        raise ValueError("Вкажіть хоча б одне поле для оновлення (-p, -e, -b, -a).")
 
     messages = []
 
-    i = 0
-    while i < len(args_data):
-        keyword = args_data[i].lower()
+    # --- ЗМІНЕНО: Логіка для одного телефону ---
+    if data["phone"]:
+        record.add_phone(data["phone"])  # Просто викликаємо add_phone, який перезапише
+        messages.append(f"оновлено телефон на {data['phone']}")
 
-        try:
-            if keyword == "phone":
-                i += 1
-                record.add_phone(args_data[i])  # add_phone додає до списку
-                messages.append(f"додано телефон {args_data[i]}")
+    if data["email"]:
+        record.add_email(data["email"])
+        messages.append(f"оновлено email на {data['email']}")
 
-            elif keyword == "email":
-                i += 1
-                record.add_email(args_data[i])  # add_email замінює
-                messages.append("оновлено email")
+    if data["birthday"]:
+        record.add_birthday(data["birthday"])
+        messages.append(f"оновлено день народження на {data['birthday']}")
 
-            elif keyword == "birthday":
-                i += 1
-                record.add_birthday(args_data[i])  # add_birthday замінює
-                messages.append("оновлено день народження")
-
-            elif keyword == "address":
-                i += 1
-                address_parts = args_data[i:]
-                if not address_parts:
-                    raise IndexError
-                address = " ".join(address_parts)
-                record.add_address(address)  # add_address замінює
-                messages.append("оновлено адресу")
-                break
-
-            else:
-                raise ValueError(
-                    f"Невідоме ключове слово '{args_data[i]}'. Очікувалось 'phone', 'email', 'birthday' або 'address'."
-                )
-
-        except IndexError:
-            raise ValueError(f"Не вказано значення для '{keyword}'.")
-
-        i += 1
+    if data["address"]:
+        record.add_address(data["address"])
+        messages.append(f"оновлено адресу на {data['address']}")
 
     if messages:
-        return f"{styles.SUCCESS}Контакт '{name}' оновлено ({', '.join(messages)})."
+        return f"{styles.SUCCESS}Контакт '{record.name.value}' оновлено ({', '.join(messages)})."
     else:
         return (
-            f"{styles.WARNING}Для контакту '{name}' не було надано даних для оновлення."
+            f"{styles.WARNING}Для контакту '{record.name.value}' не було надано даних для оновлення."
         )
-
 
 @input_error
 def show_contact(args: list, book: AddressBook) -> str:
@@ -194,8 +204,8 @@ def show_contact(args: list, book: AddressBook) -> str:
     response = [f" {styles.HIGHLIGHT}{record.name.value}"]
 
     details = []
-    if record.phones:
-        details.append(("Phones", [p.value for p in record.phones]))
+    if record.phone:
+        details.append(("Phone", [record.phone.value]))
     if record.email:
         details.append(("Email", [record.email.value]))
     if record.address:
@@ -263,6 +273,27 @@ def birthdays(args: list, book: AddressBook) -> str:
 
     return "\n".join(response)
 
+@input_error
+def find_contact(args: list, book: AddressBook) -> str:
+    """
+    Пошук контактів за текстом.
+    Приймає: [query...]
+    """
+    query = " ".join(args)
+    if not query:
+        raise ValueError("Введіть пошуковий запит.")
+
+    found = book.search(query)
+
+    if not found:
+        return f"{styles.WARNING}Не знайдено контактів, що відповідають запиту '{query}'."
+
+    response = [f"{styles.SUCCESS}Контакти, що відповідають запиту '{query}':"]
+    # Використовуємо той самий __str__ з Record, що і в show_all
+    for record in found:
+        response.append(str(record))
+    return "\n".join(response)
+
 
 # Нотатки
 @input_error
@@ -273,7 +304,7 @@ def add_note(args: list, notes: NoteBook) -> str:
     """
     text = " ".join(args)
     if not text:
-        raise ValueError("Note text cannot be empty.")
+        raise ValueError("Текст нотатки не може бути порожнім.")
 
     note = Note(text)
     notes.add_note(note)
@@ -288,11 +319,11 @@ def add_tag(args: list, notes: NoteBook) -> str:
     """
     note_id, *tags = args
     if not tags:
-        raise ValueError("Please provide at least one tag.")
+        raise ValueError("Введіть хоча б один тег.")
 
     note = notes.find_by_id(note_id)
     if note is None:
-        raise KeyError(f"Note with ID '{note_id}'")
+        raise KeyError(f"Нотатку з ID '{note_id}' не знайдено")
 
     for tag in tags:
         note.add_tag(tag)
